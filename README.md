@@ -26,13 +26,13 @@ Pass-through arguments are forwarded to `codex`:
 The first run will prompt you to sign in. You can also log in explicitly:
 
 ```bash
-codex login
+./.codex_yolo.sh login
 ```
 
 For headless or remote environments, use device auth:
 
 ```bash
-codex login --device-auth
+./.codex_yolo.sh login --device-auth
 ```
 
 Device auth may need to be enabled in your ChatGPT security settings first.

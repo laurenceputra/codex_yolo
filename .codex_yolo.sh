@@ -77,4 +77,8 @@ if [[ -f "${HOME}/.gitconfig" ]]; then
   docker_args+=("-v" "${HOME}/.gitconfig:${CONTAINER_HOME}/.gitconfig:ro")
 fi
 
-docker run "${docker_args[@]}" "${IMAGE}" codex --yolo --search "${pass_args[@]}"
+if [[ "${#pass_args[@]}" -gt 0 && "${pass_args[0]}" == "login" ]]; then
+  docker run "${docker_args[@]}" "${IMAGE}" codex "${pass_args[@]}"
+else
+  docker run "${docker_args[@]}" "${IMAGE}" codex --yolo --search "${pass_args[@]}"
+fi
