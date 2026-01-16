@@ -9,16 +9,37 @@ and `--search`.
 - Docker (Desktop or Engine)
 - Bash (macOS/Linux; Windows via WSL recommended)
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh | bash
+```
+
+Non-interactive install (no prompt):
+
+```bash
+NONINTERACTIVE=1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh)"
+```
+
+By default this installs into `~/.codex_yolo` and sources it from your shell
+profile. You can override paths:
+
+```bash
+CODEX_YOLO_DIR="$HOME/.codex_yolo" \
+CODEX_YOLO_PROFILE="$HOME/.zshrc" \
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh)"
+```
+
 ## Quick start
 
 ```bash
-./.codex_yolo.sh
+codex_yolo
 ```
 
 Pass-through arguments are forwarded to `codex`:
 
 ```bash
-./.codex_yolo.sh --help
+codex_yolo --help
 ```
 
 ## Login
@@ -26,13 +47,13 @@ Pass-through arguments are forwarded to `codex`:
 The first run will prompt you to sign in. You can also log in explicitly:
 
 ```bash
-./.codex_yolo.sh login
+codex_yolo login
 ```
 
 For headless or remote environments, use device auth:
 
 ```bash
-./.codex_yolo.sh login --device-auth
+codex_yolo login --device-auth
 ```
 
 Device auth may need to be enabled in your ChatGPT security settings first.
