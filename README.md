@@ -63,6 +63,32 @@ are shared between runs.
 - Each run checks npm for the latest `@openai/codex` version and rebuilds the
   image if it is out of date.
 
+## Update
+
+Update the wrapper scripts by re-running the installer (it overwrites the
+files inside `CODEX_YOLO_DIR`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh | bash
+```
+
+If you installed from a fork or branch, pass those again:
+
+```bash
+CODEX_YOLO_REPO="yourname/codex_yolo" \
+CODEX_YOLO_BRANCH="main" \
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/yourname/codex_yolo/main/install.sh)"
+```
+
+The Codex CLI image updates automatically when you run `codex_yolo`. To force
+a rebuild or pull:
+
+```bash
+CODEX_BUILD_NO_CACHE=1 codex_yolo
+# or
+codex_yolo --pull
+```
+
 ## License
 
 MIT. See `LICENSE`.
