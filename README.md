@@ -15,12 +15,6 @@ and `--search`.
 curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh | bash
 ```
 
-Non-interactive install (no prompt):
-
-```bash
-NONINTERACTIVE=1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh)"
-```
-
 By default this installs into `~/.codex_yolo` and sources it from your shell
 profile. You can override paths:
 
@@ -66,6 +60,8 @@ are shared between runs.
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
+- Each run checks npm for the latest `@openai/codex` version and rebuilds the
+  image if it is out of date.
 
 ## License
 

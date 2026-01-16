@@ -58,8 +58,44 @@ if [[ "${CODEX_BUILD_PULL:-0}" == "1" || "${PULL_REQUESTED}" == "1" ]]; then
   build_args+=(--pull)
 fi
 
-# Force BuildKit to avoid the legacy builder deprecation warning.
-DOCKER_BUILDKIT=1 docker build "${build_args[@]}" -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"
+latest_version=""
+if command -v npm >/dev/null 2>&1; then
+  latest_version="$(npm view @openai/codex version 2>/dev/null || true)"
+else
+  latest_version="$(docker run --rm node:20-slim npm view @openai/codex version 2>/dev/null || true)"
+fi
+latest_version="$(printf '%s' "${latest_version}" | tr -d '\n')"
+
+image_exists=0
+image_version=""
+if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
+  image_exists=1
+  image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null || true)"
+  image_version="$(printf '%s' "${image_version}" | tr -d '\n')"
+fi
+
+need_build=0
+if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" || "${CODEX_BUILD_PULL:-0}" == "1" || "${PULL_REQUESTED}" == "1" ]]; then
+  need_build=1
+elif [[ "${image_exists}" == "0" ]]; then
+  need_build=1
+elif [[ -n "${latest_version}" ]]; then
+  if [[ -z "${image_version}" || "${latest_version}" != "${image_version}" ]]; then
+    need_build=1
+  fi
+fi
+
+if [[ -z "${latest_version}" && "${image_exists}" == "1" ]]; then
+  echo "Warning: could not check latest @openai/codex version; using existing image."
+fi
+
+if [[ "${need_build}" == "1" ]]; then
+  if [[ -n "${latest_version}" && -n "${image_version}" && "${latest_version}" != "${image_version}" ]]; then
+    echo "Updating Codex CLI ${image_version} -> ${latest_version}"
+  fi
+  # Force BuildKit to avoid the legacy builder deprecation warning.
+  DOCKER_BUILDKIT=1 docker build "${build_args[@]}" -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"
+fi
 
 # Ensure host config dir exists so Docker doesn’t create it as root.
 mkdir -p "${HOME}/.codex"

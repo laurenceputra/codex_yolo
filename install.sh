@@ -5,7 +5,6 @@ REPO="${CODEX_YOLO_REPO:-laurenceputra/codex_yolo}"
 BRANCH="${CODEX_YOLO_BRANCH:-main}"
 INSTALL_DIR="${CODEX_YOLO_DIR:-$HOME/.codex_yolo}"
 PROFILE="${CODEX_YOLO_PROFILE:-}"
-NONINTERACTIVE="${NONINTERACTIVE:-0}"
 
 if ! command -v curl >/dev/null 2>&1; then
   echo "Error: curl is required to install codex_yolo."
@@ -54,18 +53,7 @@ if [[ ! -f "${profile_path}" ]]; then
 fi
 
 if ! grep -Fqs "${source_line}" "${profile_path}"; then
-  if [[ "${NONINTERACTIVE}" == "1" ]]; then
-    printf '\n%s\n' "${source_line}" >> "${profile_path}"
-  else
-    echo "Add codex_yolo to ${profile_path}? [Y/n]"
-    read -r reply
-    if [[ -z "${reply}" || "${reply}" =~ ^[Yy]$ ]]; then
-      printf '\n%s\n' "${source_line}" >> "${profile_path}"
-    else
-      echo "Skipped shell profile update. You can add this line manually:"
-      echo "${source_line}"
-    fi
-  fi
+  printf '\n%s\n' "${source_line}" >> "${profile_path}"
 fi
 
 echo "Installed to ${INSTALL_DIR}."
