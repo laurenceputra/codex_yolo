@@ -13,6 +13,89 @@ fi
 
 raw_base="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
 
+detect_os() {
+  local uname_out os_id os_like
+  uname_out="$(uname -s 2>/dev/null || true)"
+  case "${uname_out}" in
+    Darwin)
+      echo "macos"
+      return
+      ;;
+    Linux)
+      if [[ -r /proc/version ]] && grep -qi microsoft /proc/version; then
+        echo "wsl"
+        return
+      fi
+      if [[ -r /etc/os-release ]]; then
+        os_id="$(. /etc/os-release && echo "${ID:-}")"
+        os_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+        if [[ "${os_id}" == "ubuntu" || "${os_id}" == "debian" || "${os_like}" == *debian* ]]; then
+          echo "debian"
+          return
+        fi
+        if [[ "${os_id}" == "fedora" || "${os_id}" == "rhel" || "${os_id}" == "centos" || "${os_like}" == *rhel* || "${os_like}" == *fedora* ]]; then
+          echo "rhel"
+          return
+        fi
+        if [[ "${os_id}" == "arch" || "${os_like}" == *arch* ]]; then
+          echo "arch"
+          return
+        fi
+      fi
+      echo "linux"
+      return
+      ;;
+  esac
+  echo "unknown"
+}
+
+print_docker_guidance() {
+  local platform missing_buildx=0
+  platform="$(detect_os)"
+
+  if command -v docker >/dev/null 2>&1; then
+    if ! docker buildx version >/dev/null 2>&1; then
+      missing_buildx=1
+    fi
+  fi
+
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "Docker is not installed. codex_yolo uses Docker to build and run."
+    case "${platform}" in
+      macos)
+        echo "Install Docker Desktop: https://docs.docker.com/desktop/install/mac-install/"
+        echo "Or consider Colima: https://github.com/abiosoft/colima"
+        ;;
+      debian)
+        echo "Install Docker Engine (apt): https://docs.docker.com/engine/install/ubuntu/"
+        ;;
+      rhel)
+        echo "Install Docker Engine (dnf/yum): https://docs.docker.com/engine/install/centos/"
+        ;;
+      arch)
+        echo "Install Docker Engine (pacman): https://docs.docker.com/engine/install/archlinux/"
+        ;;
+      wsl)
+        echo "Install Docker Desktop with WSL2 integration: https://docs.docker.com/desktop/wsl/"
+        ;;
+      *)
+        echo "Install Docker Engine: https://docs.docker.com/engine/install/"
+        ;;
+    esac
+    echo "After installing Docker, verify buildx: https://docs.docker.com/build/buildx/working-with-buildx/"
+
+    if ! command -v sudo >/dev/null 2>&1; then
+      echo "No sudo detected. Consider rootless Docker: https://docs.docker.com/engine/security/rootless/"
+    fi
+    return
+  fi
+
+  if [[ "${missing_buildx}" -eq 1 ]]; then
+    echo "Docker is installed, but buildx is missing."
+    echo "Enable or install buildx: https://docs.docker.com/build/buildx/working-with-buildx/"
+  fi
+}
+
 detect_profile() {
   if [[ -n "${PROFILE}" ]]; then
     echo "${PROFILE}"
@@ -55,6 +138,8 @@ fi
 if ! grep -Fqs "${source_line}" "${profile_path}"; then
   printf '\n%s\n' "${source_line}" >> "${profile_path}"
 fi
+
+print_docker_guidance
 
 echo "Installed to ${INSTALL_DIR}."
 echo "Restart your shell or run: source \"${profile_path}\""
