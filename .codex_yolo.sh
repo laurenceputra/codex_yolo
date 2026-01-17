@@ -128,7 +128,7 @@ if [[ "${CODEX_DRY_RUN:-0}" == "1" ]]; then
   if [[ "${need_build}" == "1" ]]; then
     echo "Dry run: would build image with:"
     printf 'DOCKER_BUILDKIT=1 docker build %q ' "${build_args[@]}"
-    printf '%q ' -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"
+    printf '%q ' "-t" "${IMAGE}" "-f" "${DOCKERFILE}" "${SCRIPT_DIR}"
     printf '\n'
   fi
 
