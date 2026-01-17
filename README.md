@@ -58,9 +58,9 @@ are shared between runs.
 ## Configuration
 
 - `CODEX_BASE_IMAGE` (default: `node:20-slim`)
-- `CODEX_YOLO_IMAGE` (default: `codex-cli-yolo:local`)
-- `CODEX_YOLO_HOME` (default: `/home/codex`)
-- `CODEX_YOLO_WORKDIR` (default: `/workspace`)
+- `CODEX_YOLO_IMAGE` (default: `codex-cli-yolo:local`; only set to images you trust)
+- `CODEX_YOLO_HOME` (default: `/home/codex`; advanced, must be an absolute container path)
+- `CODEX_YOLO_WORKDIR` (default: `/workspace`; advanced, must be an absolute container path)
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
 - `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse the existing image

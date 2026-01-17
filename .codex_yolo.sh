@@ -41,7 +41,7 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! docker buildx version >/dev/null 2>&1; then
+if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]] && ! docker buildx version >/dev/null 2>&1; then
   echo "Warning: docker buildx is not available; builds may be slower or fail on some systems."
   echo "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
 fi
@@ -54,6 +54,20 @@ for arg in "$@"; do
   fi
   pass_args+=("${arg}")
 done
+
+if [[ "${CONTAINER_HOME}" != /* ]]; then
+  echo "Error: CODEX_YOLO_HOME must be an absolute path inside the container."
+  exit 1
+fi
+
+if [[ "${CONTAINER_WORKDIR}" != /* ]]; then
+  echo "Error: CODEX_YOLO_WORKDIR must be an absolute path inside the container."
+  exit 1
+fi
+
+if [[ "${IMAGE}" != "codex-cli-yolo:local" ]]; then
+  echo "Warning: CODEX_YOLO_IMAGE is set to a non-default image; use only images you trust."
+fi
 
 # Build the image locally (no community image pull).
 build_args=(--build-arg "BASE_IMAGE=${BASE_IMAGE}")
@@ -93,18 +107,6 @@ elif [[ -n "${latest_version}" ]]; then
   fi
 fi
 
-# Ensure host config dir exists so Docker doesn’t create it as root.
-if ! mkdir -p "${HOME}/.codex"; then
-  echo "Error: unable to create ${HOME}/.codex on the host."
-  exit 1
-fi
-
-if [[ ! -w "${HOME}/.codex" ]]; then
-  echo "Error: ${HOME}/.codex is not writable."
-  echo "Check permissions or set HOME to a writable directory."
-  exit 1
-fi
-
 docker_args=(
   --rm -i
   -u "${USER_ID}:${GROUP_ID}"
@@ -142,6 +144,18 @@ if [[ "${CODEX_DRY_RUN:-0}" == "1" ]]; then
   fi
   printf '\n'
   exit 0
+fi
+
+# Ensure host config dir exists so Docker doesn’t create it as root.
+if ! mkdir -p "${HOME}/.codex"; then
+  echo "Error: unable to create ${HOME}/.codex on the host."
+  exit 1
+fi
+
+if [[ ! -w "${HOME}/.codex" ]]; then
+  echo "Error: ${HOME}/.codex is not writable."
+  echo "Check permissions or set HOME to a writable directory."
+  exit 1
 fi
 
 if [[ -z "${latest_version}" && "${image_exists}" == "1" && "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
