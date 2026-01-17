@@ -2,12 +2,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGE="codex-cli-yolo:local"
+IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 DOCKERFILE="${SCRIPT_DIR}/.codex_yolo.Dockerfile"
 WORKSPACE="$(pwd)"
 USER_ID="$(id -u)"
 GROUP_ID="$(id -g)"
-CONTAINER_HOME="/home/codex"
+CONTAINER_HOME="${CODEX_YOLO_HOME:-/home/codex}"
+CONTAINER_WORKDIR="${CODEX_YOLO_WORKDIR:-/workspace}"
 BASE_IMAGE="${CODEX_BASE_IMAGE:-node:20-slim}"
 PULL_REQUESTED=0
 
@@ -40,6 +41,11 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]] && ! docker buildx version >/dev/null 2>&1; then
+  echo "Warning: docker buildx is not available; builds may be slower or fail on some systems."
+  echo "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
+fi
+
 pass_args=()
 for arg in "$@"; do
   if [[ "${arg}" == "--pull" ]]; then
@@ -48,6 +54,20 @@ for arg in "$@"; do
   fi
   pass_args+=("${arg}")
 done
+
+if [[ "${CONTAINER_HOME}" != /* ]]; then
+  echo "Error: CODEX_YOLO_HOME must be an absolute path inside the container."
+  exit 1
+fi
+
+if [[ "${CONTAINER_WORKDIR}" != /* ]]; then
+  echo "Error: CODEX_YOLO_WORKDIR must be an absolute path inside the container."
+  exit 1
+fi
+
+if [[ "${IMAGE}" != "codex-cli-yolo:local" ]]; then
+  echo "Warning: CODEX_YOLO_IMAGE is set to a non-default image; use only images you trust."
+fi
 
 # Build the image locally (no community image pull).
 build_args=(--build-arg "BASE_IMAGE=${BASE_IMAGE}")
@@ -59,12 +79,14 @@ if [[ "${CODEX_BUILD_PULL:-0}" == "1" || "${PULL_REQUESTED}" == "1" ]]; then
 fi
 
 latest_version=""
-if command -v npm >/dev/null 2>&1; then
-  latest_version="$(npm view @openai/codex version 2>/dev/null || true)"
-else
-  latest_version="$(docker run --rm node:20-slim npm view @openai/codex version 2>/dev/null || true)"
+if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
+  if command -v npm >/dev/null 2>&1; then
+    latest_version="$(npm view @openai/codex version 2>/dev/null || true)"
+  else
+    latest_version="$(docker run --rm node:20-slim npm view @openai/codex version 2>/dev/null || true)"
+  fi
+  latest_version="$(printf '%s' "${latest_version}" | tr -d '\n')"
 fi
-latest_version="$(printf '%s' "${latest_version}" | tr -d '\n')"
 
 image_exists=0
 image_version=""
@@ -85,7 +107,58 @@ elif [[ -n "${latest_version}" ]]; then
   fi
 fi
 
-if [[ -z "${latest_version}" && "${image_exists}" == "1" ]]; then
+docker_args=(
+  --rm -i
+  -u "${USER_ID}:${GROUP_ID}"
+  -e HOME="${CONTAINER_HOME}"
+  -v "${WORKSPACE}:${CONTAINER_WORKDIR}"
+  -v "${HOME}/.codex:${CONTAINER_HOME}/.codex"
+  -w "${CONTAINER_WORKDIR}"
+)
+
+if [[ -t 1 ]]; then
+  docker_args+=("-t")
+fi
+
+if [[ -f "${HOME}/.gitconfig" ]]; then
+  docker_args+=("-v" "${HOME}/.gitconfig:${CONTAINER_HOME}/.gitconfig:ro")
+fi
+
+if [[ "${CODEX_DRY_RUN:-0}" == "1" ]]; then
+  if [[ "${need_build}" == "1" ]]; then
+    echo "Dry run: would build image with:"
+    printf 'DOCKER_BUILDKIT=1 docker build %q ' "${build_args[@]}"
+    printf '%q ' "-t" "${IMAGE}" "-f" "${DOCKERFILE}" "${SCRIPT_DIR}"
+    printf '\n'
+  fi
+
+  echo "Dry run: would run:"
+  printf 'docker run %q ' "${docker_args[@]}"
+  printf '%q ' "${IMAGE}"
+  if [[ "${#pass_args[@]}" -gt 0 && "${pass_args[0]}" == "login" ]]; then
+    printf 'codex '
+    printf '%q ' "${pass_args[@]}"
+  else
+    printf 'codex --yolo --search '
+    printf '%q ' "${pass_args[@]}"
+  fi
+  printf '\n'
+  exit 0
+fi
+
+# Ensure host config dir exists so Docker doesn’t create it as root.
+if ! mkdir -p "${HOME}/.codex"; then
+  echo "Error: unable to create ${HOME}/.codex on the host."
+  exit 1
+fi
+
+if [[ ! -w "${HOME}/.codex" ]]; then
+  echo "Error: ${HOME}/.codex is not writable."
+  echo "Check permissions or set HOME to a writable directory."
+  exit 1
+fi
+
+if [[ -z "${latest_version}" && "${image_exists}" == "1" && "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
   echo "Warning: could not check latest @openai/codex version; using existing image."
 fi
 
@@ -95,22 +168,6 @@ if [[ "${need_build}" == "1" ]]; then
   fi
   # Force BuildKit to avoid the legacy builder deprecation warning.
   DOCKER_BUILDKIT=1 docker build "${build_args[@]}" -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"
-fi
-
-# Ensure host config dir exists so Docker doesn’t create it as root.
-mkdir -p "${HOME}/.codex"
-
-docker_args=(
-  --rm -it
-  -u "${USER_ID}:${GROUP_ID}"
-  -e HOME="${CONTAINER_HOME}"
-  -v "${WORKSPACE}:/workspace"
-  -v "${HOME}/.codex:${CONTAINER_HOME}/.codex"
-  -w /workspace
-)
-
-if [[ -f "${HOME}/.gitconfig" ]]; then
-  docker_args+=("-v" "${HOME}/.gitconfig:${CONTAINER_HOME}/.gitconfig:ro")
 fi
 
 if [[ "${#pass_args[@]}" -gt 0 && "${pass_args[0]}" == "login" ]]; then
