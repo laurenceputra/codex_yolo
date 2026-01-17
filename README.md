@@ -74,7 +74,7 @@ are shared between runs.
 - `CODEX_YOLO_WORKDIR` (default: `/workspace`; advanced, must be an absolute container path)
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
-- `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse the existing image
+- `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse an existing image; requires that the image already exists (for example from a previous run), otherwise the script may fail instead of building it
 - `CODEX_DRY_RUN=1` to print the computed docker build/run commands without executing
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
