@@ -2,7 +2,8 @@
 
 Run the OpenAI Codex CLI in a disposable Docker container with your current
 repo mounted. The script builds a local image and starts Codex with `--yolo`
-and `--search`.
+and `--search`. Only the current directory is mounted into the container by
+default, so other host paths are not visible unless you add additional mounts.
 
 ## Requirements
 
@@ -37,6 +38,9 @@ Pass-through arguments are forwarded to `codex`:
 codex_yolo --help
 ```
 
+By default, your current repo is mounted into the container at `/workspace`,
+so make sure you run `codex_yolo` from the repo you want Codex to access.
+
 ## Login
 
 The first run will prompt you to sign in. You can also log in explicitly:
@@ -54,6 +58,13 @@ codex_yolo login --device-auth
 Device auth may need to be enabled in your ChatGPT security settings first.
 The container mounts `~/.codex` from your host, so file-based credential caches
 are shared between runs.
+
+## Troubleshooting
+
+- **Docker not found / daemon not running:** install Docker and start the Docker
+  service, then re-run `codex_yolo` (see Requirements above for links).
+- **Files missing inside the container:** only the current directory is mounted
+  by default. Run `codex_yolo` from the repo you want to work on.
 
 ## Configuration
 
