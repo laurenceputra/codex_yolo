@@ -27,8 +27,7 @@ detect_os() {
         return
       fi
       if [[ -r /etc/os-release ]]; then
-        os_id="$(. /etc/os-release && echo "${ID:-}")"
-        os_like="$(. /etc/os-release && echo "${ID_LIKE:-}")"
+        read -r os_id os_like < <(. /etc/os-release && printf '%s %s\n' "${ID:-}" "${ID_LIKE:-}")
         if [[ "${os_id}" == "ubuntu" || "${os_id}" == "debian" || "${os_like}" == *debian* ]]; then
           echo "debian"
           return
