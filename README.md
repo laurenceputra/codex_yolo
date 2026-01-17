@@ -8,7 +8,7 @@ and `--search`.
 
 - Docker (Desktop or Engine)
 - Bash (macOS/Linux; Windows via WSL recommended)
-- Docker Buildx (recommended for reliable builds)
+- Docker Buildx (recommended for reliable builds): https://docs.docker.com/build/buildx/
 
 ## Install
 

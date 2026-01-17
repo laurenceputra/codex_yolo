@@ -43,7 +43,7 @@ fi
 
 if ! docker buildx version >/dev/null 2>&1; then
   echo "Warning: docker buildx is not available; builds may be slower or fail on some systems."
-  echo "Install Docker Buildx to improve build reliability."
+  echo "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
 fi
 
 pass_args=()
