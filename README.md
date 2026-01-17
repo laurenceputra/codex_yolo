@@ -8,6 +8,7 @@ and `--search`.
 
 - Docker (Desktop or Engine)
 - Bash (macOS/Linux; Windows via WSL recommended)
+- Docker Buildx (recommended for reliable builds)
 
 ## Install
 
@@ -58,9 +59,12 @@ are shared between runs.
 
 - `CODEX_BASE_IMAGE` (default: `node:20-slim`)
 - `CODEX_YOLO_IMAGE` (default: `codex-cli-yolo:local`)
+- `CODEX_YOLO_HOME` (default: `/home/codex`)
+- `CODEX_YOLO_WORKDIR` (default: `/workspace`)
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
 - `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse the existing image
+- `CODEX_DRY_RUN=1` to print the computed docker build/run commands without executing
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
