@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-IMAGE="codex-cli-yolo:local"
+IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 DOCKERFILE="${SCRIPT_DIR}/.codex_yolo.Dockerfile"
 WORKSPACE="$(pwd)"
 USER_ID="$(id -u)"
@@ -59,12 +59,14 @@ if [[ "${CODEX_BUILD_PULL:-0}" == "1" || "${PULL_REQUESTED}" == "1" ]]; then
 fi
 
 latest_version=""
-if command -v npm >/dev/null 2>&1; then
-  latest_version="$(npm view @openai/codex version 2>/dev/null || true)"
-else
-  latest_version="$(docker run --rm node:20-slim npm view @openai/codex version 2>/dev/null || true)"
+if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
+  if command -v npm >/dev/null 2>&1; then
+    latest_version="$(npm view @openai/codex version 2>/dev/null || true)"
+  else
+    latest_version="$(docker run --rm node:20-slim npm view @openai/codex version 2>/dev/null || true)"
+  fi
+  latest_version="$(printf '%s' "${latest_version}" | tr -d '\n')"
 fi
-latest_version="$(printf '%s' "${latest_version}" | tr -d '\n')"
 
 image_exists=0
 image_version=""
@@ -101,13 +103,17 @@ fi
 mkdir -p "${HOME}/.codex"
 
 docker_args=(
-  --rm -it
+  --rm -i
   -u "${USER_ID}:${GROUP_ID}"
   -e HOME="${CONTAINER_HOME}"
   -v "${WORKSPACE}:/workspace"
   -v "${HOME}/.codex:${CONTAINER_HOME}/.codex"
   -w /workspace
 )
+
+if [[ -t 1 ]]; then
+  docker_args+=("-t")
+fi
 
 if [[ -f "${HOME}/.gitconfig" ]]; then
   docker_args+=("-v" "${HOME}/.gitconfig:${CONTAINER_HOME}/.gitconfig:ro")
