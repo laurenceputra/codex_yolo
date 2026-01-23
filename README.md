@@ -72,6 +72,7 @@ are shared between runs.
 - `CODEX_YOLO_IMAGE` (default: `codex-cli-yolo:local`; only set to images you trust)
 - `CODEX_YOLO_HOME` (default: `/home/codex`; advanced, must be an absolute container path)
 - `CODEX_YOLO_WORKDIR` (default: `/workspace`; advanced, must be an absolute container path)
+- `CODEX_YOLO_CLEANUP` (default: `1`) to chown `/workspace` to your UID on exit; set to `0` to skip
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
 - `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse an existing image; requires that the image already exists (for example from a previous run), otherwise the script may fail instead of building it
@@ -83,6 +84,8 @@ are shared between runs.
 ## Security note
 
 `codex_yolo` deliberately does not forward your SSH agent or mount `~/.ssh` into the container. This keeps the blast radius smaller when running the Codex CLI in `--yolo` mode, at the cost of private repo access from inside the container.
+
+The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 
 ## Update
 

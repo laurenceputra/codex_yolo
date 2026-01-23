@@ -7,6 +7,8 @@ DOCKERFILE="${SCRIPT_DIR}/.codex_yolo.Dockerfile"
 WORKSPACE="$(pwd)"
 USER_ID="$(id -u)"
 GROUP_ID="$(id -g)"
+USER_NAME="$(id -un)"
+GROUP_NAME="$(id -gn)"
 CONTAINER_HOME="${CODEX_YOLO_HOME:-/home/codex}"
 CONTAINER_WORKDIR="${CODEX_YOLO_WORKDIR:-/workspace}"
 BASE_IMAGE="${CODEX_BASE_IMAGE:-node:20-slim}"
@@ -88,6 +90,10 @@ if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
   latest_version="$(printf '%s' "${latest_version}" | tr -d '\n')"
 fi
 
+if [[ -n "${latest_version}" ]]; then
+  build_args+=(--build-arg "CODEX_VERSION=${latest_version}")
+fi
+
 image_exists=0
 image_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
@@ -109,8 +115,13 @@ fi
 
 docker_args=(
   --rm -i
-  -u "${USER_ID}:${GROUP_ID}"
   -e HOME="${CONTAINER_HOME}"
+  -e TARGET_UID="${USER_ID}"
+  -e TARGET_GID="${GROUP_ID}"
+  -e TARGET_USER="${USER_NAME}"
+  -e TARGET_GROUP="${GROUP_NAME}"
+  -e TARGET_HOME="${CONTAINER_HOME}"
+  -e CODEX_YOLO_CLEANUP="${CODEX_YOLO_CLEANUP:-1}"
   -v "${WORKSPACE}:${CONTAINER_WORKDIR}"
   -v "${HOME}/.codex:${CONTAINER_HOME}/.codex"
   -w "${CONTAINER_WORKDIR}"
