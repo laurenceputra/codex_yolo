@@ -13,6 +13,8 @@ CONTAINER_HOME="${CODEX_YOLO_HOME:-/home/codex}"
 CONTAINER_WORKDIR="${CODEX_YOLO_WORKDIR:-/workspace}"
 BASE_IMAGE="${CODEX_BASE_IMAGE:-node:20-slim}"
 PULL_REQUESTED=0
+REPO="${CODEX_YOLO_REPO:-laurenceputra/codex_yolo}"
+BRANCH="${CODEX_YOLO_BRANCH:-main}"
 
 install_hint=""
 case "$(uname -s)" in
@@ -41,6 +43,46 @@ if ! docker info >/dev/null 2>&1; then
   echo "Start Docker Desktop or the Docker Engine service, then try again."
   echo "${install_hint}"
   exit 1
+fi
+
+# Check for updates unless explicitly disabled
+if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
+  local_version=""
+  if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
+    local_version="$(cat "${SCRIPT_DIR}/VERSION" | tr -d '\n' | tr -d ' ')"
+  fi
+  
+  if command -v curl >/dev/null 2>&1; then
+    remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n' | tr -d ' ' || true)"
+    
+    if [[ -n "${remote_version}" && "${remote_version}" != "${local_version}" ]]; then
+      echo "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
+      echo "Updating from ${REPO}/${BRANCH}..."
+      
+      temp_dir="$(mktemp -d)"
+      trap 'rm -rf "${temp_dir}"' EXIT
+      
+      if curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.sh" -o "${temp_dir}/.codex_yolo.sh" && \
+         curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.Dockerfile" -o "${temp_dir}/.codex_yolo.Dockerfile" && \
+         curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_entrypoint.sh" -o "${temp_dir}/.codex_yolo_entrypoint.sh" && \
+         curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.dockerignore" -o "${temp_dir}/.dockerignore" 2>/dev/null && \
+         curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
+        
+        chmod +x "${temp_dir}/.codex_yolo.sh"
+        cp "${temp_dir}/.codex_yolo.sh" "${SCRIPT_DIR}/.codex_yolo.sh"
+        cp "${temp_dir}/.codex_yolo.Dockerfile" "${SCRIPT_DIR}/.codex_yolo.Dockerfile"
+        cp "${temp_dir}/.codex_yolo_entrypoint.sh" "${SCRIPT_DIR}/.codex_yolo_entrypoint.sh"
+        cp "${temp_dir}/.dockerignore" "${SCRIPT_DIR}/.dockerignore" 2>/dev/null || true
+        cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"
+        
+        echo "Updated to version ${remote_version}"
+        echo "Re-executing with new version..."
+        exec "${SCRIPT_DIR}/.codex_yolo.sh" "$@"
+      else
+        echo "Warning: failed to download updates; continuing with local version."
+      fi
+    fi
+  fi
 fi
 
 if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]] && ! docker buildx version >/dev/null 2>&1; then

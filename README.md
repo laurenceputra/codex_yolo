@@ -73,6 +73,9 @@ are shared between runs.
 - `CODEX_YOLO_HOME` (default: `/home/codex`; advanced, must be an absolute container path)
 - `CODEX_YOLO_WORKDIR` (default: `/workspace`; advanced, must be an absolute container path)
 - `CODEX_YOLO_CLEANUP` (default: `1`) to chown `/workspace` to your UID on exit; set to `0` to skip
+- `CODEX_YOLO_REPO` (default: `laurenceputra/codex_yolo`) to specify a different repository for updates
+- `CODEX_YOLO_BRANCH` (default: `main`) to specify a different branch for updates
+- `CODEX_SKIP_UPDATE_CHECK=1` to skip automatic update checks
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
 - `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse an existing image; requires that the image already exists (for example from a previous run), otherwise the script may fail instead of building it
@@ -80,6 +83,8 @@ are shared between runs.
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
+- Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)
+  and auto-updates if a new version is available.
 
 ## Security note
 
