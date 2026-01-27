@@ -120,6 +120,9 @@ mkdir -p "${INSTALL_DIR}"
 
 curl -fsSL "${raw_base}/.codex_yolo.sh" -o "${INSTALL_DIR}/.codex_yolo.sh"
 curl -fsSL "${raw_base}/.codex_yolo.Dockerfile" -o "${INSTALL_DIR}/.codex_yolo.Dockerfile"
+curl -fsSL "${raw_base}/.codex_yolo_entrypoint.sh" -o "${INSTALL_DIR}/.codex_yolo_entrypoint.sh"
+curl -fsSL "${raw_base}/.dockerignore" -o "${INSTALL_DIR}/.dockerignore" 2>/dev/null || true
+curl -fsSL "${raw_base}/VERSION" -o "${INSTALL_DIR}/VERSION"
 chmod +x "${INSTALL_DIR}/.codex_yolo.sh"
 
 cat > "${INSTALL_DIR}/env" <<EOF
