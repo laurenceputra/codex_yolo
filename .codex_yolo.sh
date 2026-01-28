@@ -205,6 +205,18 @@ if ! mkdir -p "${HOME}/.codex_yolo/data"; then
   exit 1
 fi
 
+# Migrate existing credentials from ~/.codex to ~/.codex_yolo/data
+if [[ -d "${HOME}/.codex" && ! -L "${HOME}/.codex" ]]; then
+  if [[ ! "$(ls -A "${HOME}/.codex_yolo/data" 2>/dev/null)" ]]; then
+    echo "Migrating existing credentials from ~/.codex to ~/.codex_yolo/data"
+    if cp -r "${HOME}/.codex/"* "${HOME}/.codex_yolo/data/" 2>/dev/null; then
+      echo "Migration successful. You can safely remove ~/.codex if you wish."
+    else
+      echo "Warning: unable to migrate credentials; continuing with empty ~/.codex_yolo/data"
+    fi
+  fi
+fi
+
 if [[ ! -w "${HOME}/.codex_yolo/data" ]]; then
   echo "Error: ${HOME}/.codex_yolo/data is not writable."
   echo "Check permissions or set HOME to a writable directory."
