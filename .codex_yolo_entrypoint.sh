@@ -54,6 +54,23 @@ chown -R "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}" 2>/dev/null || true
 printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${TARGET_USER}" > /etc/sudoers.d/90-codex
 chmod 0440 /etc/sudoers.d/90-codex
 
+# Extract git user.name and user.email from .gitconfig if it exists
+# and set them as environment variables so Codex CLI uses them for commits
+if [ -f "${TARGET_HOME}/.gitconfig" ]; then
+  GIT_USER_NAME="$(git config -f "${TARGET_HOME}/.gitconfig" user.name 2>/dev/null || true)"
+  GIT_USER_EMAIL="$(git config -f "${TARGET_HOME}/.gitconfig" user.email 2>/dev/null || true)"
+  
+  if [ -n "${GIT_USER_NAME}" ]; then
+    export GIT_AUTHOR_NAME="${GIT_USER_NAME}"
+    export GIT_COMMITTER_NAME="${GIT_USER_NAME}"
+  fi
+  
+  if [ -n "${GIT_USER_EMAIL}" ]; then
+    export GIT_AUTHOR_EMAIL="${GIT_USER_EMAIL}"
+    export GIT_COMMITTER_EMAIL="${GIT_USER_EMAIL}"
+  fi
+fi
+
 if [ "$#" -eq 0 ]; then
   gosu "${TARGET_UID}:${TARGET_GID}" /bin/sh
   exit $?

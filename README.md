@@ -66,7 +66,7 @@ are shared between runs.
 
 - **Current directory** → `/workspace` (read-write): Your repository code. Make sure to run `codex_yolo` from the directory you want to work on.
 - **`~/.codex`** → `~/.codex` (read-write): Credential caches for ChatGPT authentication tokens, shared between runs.
-- **`~/.gitconfig`** → `~/.gitconfig` (read-only): Your Git configuration (only if the file exists on your host). This allows Git commands inside the container to use your name, email, and other Git settings.
+- **`~/.gitconfig`** → `~/.gitconfig` (read-only): Your Git configuration (only if the file exists on your host). This allows Git commands inside the container to use your name, email, and other Git settings. **Important:** When the Codex CLI makes commits, it will use your `user.name` and `user.email` from this file instead of the default "Codex Fix <fix@codex-yolo.local>" identity.
 
 For security reasons, `codex_yolo` **does not** mount:
 - `~/.ssh` - SSH keys are not available inside the container
