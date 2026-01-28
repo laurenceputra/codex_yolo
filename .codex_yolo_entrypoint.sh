@@ -41,7 +41,11 @@ else
   if getent passwd "${TARGET_USER}" >/dev/null 2>&1; then
     TARGET_USER="codex-${TARGET_UID}"
   fi
-  useradd -u "${TARGET_UID}" -g "${TARGET_GID}" -s /bin/sh -d "${TARGET_HOME}" "${TARGET_USER}"
+  if [ -d "${TARGET_HOME}" ]; then
+    useradd -M -u "${TARGET_UID}" -g "${TARGET_GID}" -s /bin/sh -d "${TARGET_HOME}" "${TARGET_USER}"
+  else
+    useradd -u "${TARGET_UID}" -g "${TARGET_GID}" -s /bin/sh -d "${TARGET_HOME}" "${TARGET_USER}"
+  fi
 fi
 
 mkdir -p "${TARGET_HOME}/.codex" /etc/sudoers.d
