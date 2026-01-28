@@ -209,11 +209,14 @@ fi
 if [[ -d "${HOME}/.codex" && ! -L "${HOME}/.codex" ]]; then
   if [[ ! "$(ls -A "${HOME}/.codex_yolo/data" 2>/dev/null)" ]]; then
     echo "Migrating existing credentials from ~/.codex to ~/.codex_yolo/data"
-    if cp -r "${HOME}/.codex/"* "${HOME}/.codex_yolo/data/" 2>/dev/null; then
-      echo "Migration successful. You can safely remove ~/.codex if you wish."
-    else
-      echo "Warning: unable to migrate credentials; continuing with empty ~/.codex_yolo/data"
-    fi
+    (
+      shopt -s dotglob
+      if cp -r "${HOME}/.codex/"* "${HOME}/.codex_yolo/data/" 2>/dev/null; then
+        echo "Migration successful. You can safely remove ~/.codex if you wish."
+      else
+        echo "Warning: unable to migrate credentials; continuing with empty ~/.codex_yolo/data"
+      fi
+    )
   fi
 fi
 
