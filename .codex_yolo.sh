@@ -165,7 +165,7 @@ docker_args=(
   -e TARGET_HOME="${CONTAINER_HOME}"
   -e CODEX_YOLO_CLEANUP="${CODEX_YOLO_CLEANUP:-1}"
   -v "${WORKSPACE}:${CONTAINER_WORKDIR}"
-  -v "${HOME}/.codex_yolo/data:${CONTAINER_HOME}/.codex"
+  -v "${HOME}/.codex:${CONTAINER_HOME}/.codex"
   -w "${CONTAINER_WORKDIR}"
 )
 
@@ -199,29 +199,14 @@ if [[ "${CODEX_DRY_RUN:-0}" == "1" ]]; then
   exit 0
 fi
 
-# Ensure host config dir exists so Docker doesn’t create it as root.
-if ! mkdir -p "${HOME}/.codex_yolo/data"; then
-  echo "Error: unable to create ${HOME}/.codex_yolo/data on the host."
+# Ensure host config dir exists so Docker doesn't create it as root.
+if ! mkdir -p "${HOME}/.codex"; then
+  echo "Error: unable to create ${HOME}/.codex on the host."
   exit 1
 fi
 
-# Migrate existing credentials from ~/.codex to ~/.codex_yolo/data
-if [[ -d "${HOME}/.codex" && ! -L "${HOME}/.codex" ]]; then
-  if [[ ! "$(ls -A "${HOME}/.codex_yolo/data" 2>/dev/null)" ]]; then
-    echo "Migrating existing credentials from ~/.codex to ~/.codex_yolo/data"
-    (
-      shopt -s dotglob
-      if cp -r "${HOME}/.codex/"* "${HOME}/.codex_yolo/data/" 2>/dev/null; then
-        echo "Migration successful. You can safely remove ~/.codex if you wish."
-      else
-        echo "Warning: unable to migrate credentials; continuing with empty ~/.codex_yolo/data"
-      fi
-    )
-  fi
-fi
-
-if [[ ! -w "${HOME}/.codex_yolo/data" ]]; then
-  echo "Error: ${HOME}/.codex_yolo/data is not writable."
+if [[ ! -w "${HOME}/.codex" ]]; then
+  echo "Error: ${HOME}/.codex is not writable."
   echo "Check permissions or set HOME to a writable directory."
   exit 1
 fi

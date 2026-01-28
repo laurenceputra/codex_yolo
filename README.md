@@ -56,12 +56,8 @@ codex_yolo login --device-auth
 ```
 
 Device auth may need to be enabled in your ChatGPT security settings first.
-The container mounts `~/.codex_yolo/data` from your host, so file-based credential caches
+The container mounts `~/.codex` from your host, so file-based credential caches
 are shared between runs.
-
-**Note for existing users:** If you previously used codex_yolo with credentials
-stored in `~/.codex`, they will be automatically migrated to `~/.codex_yolo/data`
-on your next run. After migration, you can safely remove the old `~/.codex` directory.
 
 ## Troubleshooting
 
