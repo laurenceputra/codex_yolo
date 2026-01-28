@@ -2,8 +2,9 @@
 
 Run the OpenAI Codex CLI in a disposable Docker container with your current
 repo mounted. The script builds a local image and starts Codex with `--yolo`
-and `--search`. Only the current directory is mounted into the container by
-default, so other host paths are not visible unless you add additional mounts.
+and `--search`. By default, only your current directory, `~/.codex` credentials,
+and `~/.gitconfig` are mounted into the container. Other host paths are not
+visible, keeping the environment isolated and secure.
 
 ## Requirements
 
@@ -59,6 +60,21 @@ Device auth may need to be enabled in your ChatGPT security settings first.
 The container mounts `~/.codex` from your host, so file-based credential caches
 are shared between runs.
 
+## What gets mounted from the host
+
+`codex_yolo` mounts the following paths from your host system into the container:
+
+- **Current directory** → `/workspace` (read-write): Your repository code. Make sure to run `codex_yolo` from the directory you want to work on.
+- **`~/.codex`** → `~/.codex` (read-write): Credential caches for ChatGPT authentication tokens, shared between runs.
+- **`~/.gitconfig`** → `~/.gitconfig` (read-only): Your Git configuration (only if the file exists on your host). This allows Git commands inside the container to use your name, email, and other Git settings.
+
+For security reasons, `codex_yolo` **does not** mount:
+- `~/.ssh` - SSH keys are not available inside the container
+- SSH agent forwarding is disabled
+- No other host directories are mounted by default
+
+This minimal mounting approach keeps the blast radius smaller when running in `--yolo` mode.
+
 ## Troubleshooting
 
 - **Docker not found / daemon not running:** install Docker and start the Docker
@@ -88,7 +104,7 @@ are shared between runs.
 
 ## Security note
 
-`codex_yolo` deliberately does not forward your SSH agent or mount `~/.ssh` into the container. This keeps the blast radius smaller when running the Codex CLI in `--yolo` mode, at the cost of private repo access from inside the container.
+`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. Notably, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode at the cost of private repo access from inside the container.
 
 The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 
