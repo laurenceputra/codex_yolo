@@ -165,7 +165,7 @@ docker_args=(
   -e TARGET_HOME="${CONTAINER_HOME}"
   -e CODEX_YOLO_CLEANUP="${CODEX_YOLO_CLEANUP:-1}"
   -v "${WORKSPACE}:${CONTAINER_WORKDIR}"
-  -v "${HOME}/.codex:${CONTAINER_HOME}/.codex"
+  -v "${HOME}/.codex_yolo/data:${CONTAINER_HOME}/.codex"
   -w "${CONTAINER_WORKDIR}"
 )
 
@@ -200,13 +200,13 @@ if [[ "${CODEX_DRY_RUN:-0}" == "1" ]]; then
 fi
 
 # Ensure host config dir exists so Docker doesn’t create it as root.
-if ! mkdir -p "${HOME}/.codex"; then
-  echo "Error: unable to create ${HOME}/.codex on the host."
+if ! mkdir -p "${HOME}/.codex_yolo/data"; then
+  echo "Error: unable to create ${HOME}/.codex_yolo/data on the host."
   exit 1
 fi
 
-if [[ ! -w "${HOME}/.codex" ]]; then
-  echo "Error: ${HOME}/.codex is not writable."
+if [[ ! -w "${HOME}/.codex_yolo/data" ]]; then
+  echo "Error: ${HOME}/.codex_yolo/data is not writable."
   echo "Check permissions or set HOME to a writable directory."
   exit 1
 fi
