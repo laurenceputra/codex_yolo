@@ -1,6 +1,6 @@
 # codex_yolo configuration file
 # Place this file at ~/.codex_yolo/config (or ${INSTALL_DIR}/config)
-# Precedence: ${INSTALL_DIR}/config < ~/.codex_yolo/config < Environment variables
+# Precedence (lowest to highest): ${INSTALL_DIR}/config, ~/.codex_yolo/config, Environment variables
 
 # Base Docker image (default: node:20-slim)
 # CODEX_BASE_IMAGE=node:20-slim
