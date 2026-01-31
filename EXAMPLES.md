@@ -63,11 +63,11 @@ codex_yolo
 ## Advanced Usage
 
 ### Using Configuration Files
-Create `~/.codex_yolo.conf` to set persistent preferences:
+Create `~/.codex_yolo/config` to set persistent preferences:
 ```bash
 # Example configuration
-echo 'CODEX_VERBOSE=1' > ~/.codex_yolo.conf
-echo 'CODEX_SKIP_UPDATE_CHECK=0' >> ~/.codex_yolo.conf
+echo 'CODEX_VERBOSE=1' > ~/.codex_yolo/config
+echo 'CODEX_SKIP_UPDATE_CHECK=0' >> ~/.codex_yolo/config
 ```
 
 ### Verbose Mode

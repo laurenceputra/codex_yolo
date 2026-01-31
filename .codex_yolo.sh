@@ -86,17 +86,17 @@ case "$(uname -s)" in
 esac
 
 if ! command -v docker >/dev/null 2>&1; then
-  log_error "docker is not installed or not on PATH."
+  log_error "Docker is not installed or not on PATH"
   log_info "${install_hint}"
-  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help."
+  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help"
   exit 127
 fi
 
 if ! docker info >/dev/null 2>&1; then
-  log_error "Docker is installed but the daemon is not running."
-  log_info "Start Docker Desktop or the Docker Engine service, then try again."
+  log_error "Docker is installed but the daemon is not running"
+  log_info "Start Docker Desktop or the Docker Engine service, then try again"
   log_info "${install_hint}"
-  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help."
+  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help"
   exit 1
 fi
 
@@ -104,11 +104,11 @@ fi
 if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
   local_version=""
   if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
-    local_version="$(cat "${SCRIPT_DIR}/VERSION" | tr -d '\n' | tr -d ' ')"
+    local_version="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
   fi
   
   if command -v curl >/dev/null 2>&1; then
-    remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n' | tr -d ' ' || true)"
+    remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n ' || true)"
     
     if [[ -n "${remote_version}" && "${remote_version}" != "${local_version}" ]]; then
       log_info "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
@@ -127,10 +127,9 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
         
         # Download optional files (don't fail if these are missing)
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_completion.bash" -o "${temp_dir}/.codex_yolo_completion.bash" 2>/dev/null || true
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_completion.zsh" -o "${temp_dir}/.codex_yolo_completion.zsh" 2>/dev/null || true
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.conf.example" -o "${temp_dir}/.codex_yolo.conf.example" 2>/dev/null || true
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/EXAMPLES.md" -o "${temp_dir}/EXAMPLES.md" 2>/dev/null || true
+        for optional_file in ".codex_yolo_completion.bash" ".codex_yolo_completion.zsh" ".codex_yolo.conf.example" "EXAMPLES.md"; do
+          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/${optional_file}" -o "${temp_dir}/${optional_file}" 2>/dev/null || true
+        done
         
         # Install core files
         chmod +x "${temp_dir}/.codex_yolo.sh"
@@ -143,25 +142,24 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
         cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"
         
         # Install optional files if they were downloaded
-        [[ -f "${temp_dir}/.codex_yolo_completion.bash" ]] && cp "${temp_dir}/.codex_yolo_completion.bash" "${SCRIPT_DIR}/.codex_yolo_completion.bash" 2>/dev/null || true
-        [[ -f "${temp_dir}/.codex_yolo_completion.zsh" ]] && cp "${temp_dir}/.codex_yolo_completion.zsh" "${SCRIPT_DIR}/.codex_yolo_completion.zsh" 2>/dev/null || true
-        [[ -f "${temp_dir}/.codex_yolo.conf.example" ]] && cp "${temp_dir}/.codex_yolo.conf.example" "${SCRIPT_DIR}/.codex_yolo.conf.example" 2>/dev/null || true
-        [[ -f "${temp_dir}/EXAMPLES.md" ]] && cp "${temp_dir}/EXAMPLES.md" "${SCRIPT_DIR}/EXAMPLES.md" 2>/dev/null || true
+        for optional_file in ".codex_yolo_completion.bash" ".codex_yolo_completion.zsh" ".codex_yolo.conf.example" "EXAMPLES.md"; do
+          [[ -f "${temp_dir}/${optional_file}" ]] && cp "${temp_dir}/${optional_file}" "${SCRIPT_DIR}/${optional_file}" 2>/dev/null || true
+        done
         
         log_info "Updated to version ${remote_version}"
         log_verbose "Updated files in ${SCRIPT_DIR}"
         log_info "Re-executing with new version..."
         exec "${SCRIPT_DIR}/.codex_yolo.sh" "$@"
       else
-        echo "Warning: failed to download updates; continuing with local version."
+        log_info "Warning: failed to download updates; continuing with local version"
       fi
     fi
   fi
 fi
 
 if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]] && ! docker buildx version >/dev/null 2>&1; then
-  echo "Warning: docker buildx is not available; builds may be slower or fail on some systems."
-  echo "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
+  log_info "Warning: docker buildx is not available; builds may be slower or fail on some systems"
+  log_info "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
 fi
 
 pass_args=()
@@ -190,17 +188,17 @@ log_verbose "Container home: ${CONTAINER_HOME}"
 log_verbose "Container workdir: ${CONTAINER_WORKDIR}"
 
 if [[ "${CONTAINER_HOME}" != /* ]]; then
-  echo "Error: CODEX_YOLO_HOME must be an absolute path inside the container."
+  log_error "CODEX_YOLO_HOME must be an absolute path inside the container"
   exit 1
 fi
 
 if [[ "${CONTAINER_WORKDIR}" != /* ]]; then
-  echo "Error: CODEX_YOLO_WORKDIR must be an absolute path inside the container."
+  log_error "CODEX_YOLO_WORKDIR must be an absolute path inside the container"
   exit 1
 fi
 
 if [[ "${IMAGE}" != "codex-cli-yolo:local" ]]; then
-  echo "Warning: CODEX_YOLO_IMAGE is set to a non-default image; use only images you trust."
+  log_info "Warning: CODEX_YOLO_IMAGE is set to a non-default image; use only images you trust"
 fi
 
 # Build the image locally (no community image pull).
@@ -234,15 +232,20 @@ if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   image_version="$(printf '%s' "${image_version}" | tr -d '\n')"
 fi
 
+# Check if we need to build the image
+# Build if: forced rebuild, forced pull, image missing, or version mismatch
+version_mismatch=0
+if [[ -n "${latest_version}" ]] && { [[ -z "${image_version}" ]] || [[ "${latest_version}" != "${image_version}" ]]; }; then
+  version_mismatch=1
+fi
+
 need_build=0
-if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" || "${CODEX_BUILD_PULL:-0}" == "1" || "${PULL_REQUESTED}" == "1" ]]; then
+if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" ]] || \
+   [[ "${CODEX_BUILD_PULL:-0}" == "1" ]] || \
+   [[ "${PULL_REQUESTED}" == "1" ]] || \
+   [[ "${image_exists}" == "0" ]] || \
+   [[ "${version_mismatch}" == "1" ]]; then
   need_build=1
-elif [[ "${image_exists}" == "0" ]]; then
-  need_build=1
-elif [[ -n "${latest_version}" ]]; then
-  if [[ -z "${image_version}" || "${latest_version}" != "${image_version}" ]]; then
-    need_build=1
-  fi
 fi
 
 docker_args=(
@@ -304,23 +307,23 @@ fi
 
 # Ensure host config dir exists so Docker doesn’t create it as root.
 if ! mkdir -p "${HOME}/.codex"; then
-  echo "Error: unable to create ${HOME}/.codex on the host."
+  log_error "Unable to create ${HOME}/.codex on the host"
   exit 1
 fi
 
 if [[ ! -w "${HOME}/.codex" ]]; then
-  echo "Error: ${HOME}/.codex is not writable."
-  echo "Check permissions or set HOME to a writable directory."
+  log_error "${HOME}/.codex is not writable"
+  log_info "Check permissions or set HOME to a writable directory"
   exit 1
 fi
 
 if [[ -z "${latest_version}" && "${image_exists}" == "1" && "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
-  echo "Warning: could not check latest @openai/codex version; using existing image."
+  log_info "Warning: could not check latest @openai/codex version; using existing image"
 fi
 
 if [[ "${need_build}" == "1" ]]; then
   if [[ -n "${latest_version}" && -n "${image_version}" && "${latest_version}" != "${image_version}" ]]; then
-    echo "Updating Codex CLI ${image_version} -> ${latest_version}"
+    log_info "Updating Codex CLI ${image_version} -> ${latest_version}"
   fi
   # Force BuildKit to avoid the legacy builder deprecation warning.
   DOCKER_BUILDKIT=1 docker build "${build_args[@]}" -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"
