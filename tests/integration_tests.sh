@@ -171,13 +171,14 @@ fi
 
 # Test 13: Config file loading
 log_test "Config file loading"
-test_config="/tmp/test_codex_yolo.conf"
-test_config_target="/tmp/.codex_yolo.conf"
+test_config="/tmp/test_codex_yolo_config"
 test_script=$(mktemp)
+test_home=$(mktemp -d)
 
 # Setup cleanup trap
 cleanup_test_13() {
-  rm -f "${test_script}" "${test_config}" "${test_config_target}"
+  rm -f "${test_script}" "${test_config}"
+  rm -rf "${test_home}"
 }
 trap cleanup_test_13 EXIT
 
@@ -187,19 +188,21 @@ CODEX_BASE_IMAGE=node:18-slim
 EOF
 
 # Create a test script that sources the main script logic
-cat > "${test_script}" <<'TESTEOF'
+cat > "${test_script}" <<TESTEOF
 #!/usr/bin/env bash
 set -euo pipefail
-HOME=/tmp
-if [[ -f "${HOME}/.codex_yolo.conf" ]]; then
-  source "${HOME}/.codex_yolo.conf"
+HOME="${test_home}"
+mkdir -p "\${HOME}/.codex_yolo"
+if [[ -f "\${HOME}/.codex_yolo/config" ]]; then
+  source "\${HOME}/.codex_yolo/config"
 fi
-echo "CODEX_VERBOSE=${CODEX_VERBOSE:-0}"
-echo "CODEX_BASE_IMAGE=${CODEX_BASE_IMAGE:-node:20-slim}"
+echo "CODEX_VERBOSE=\${CODEX_VERBOSE:-0}"
+echo "CODEX_BASE_IMAGE=\${CODEX_BASE_IMAGE:-node:20-slim}"
 TESTEOF
 
 chmod +x "${test_script}"
-cp "${test_config}" "${test_config_target}"
+mkdir -p "${test_home}/.codex_yolo"
+cp "${test_config}" "${test_home}/.codex_yolo/config"
 
 output=$("${test_script}" 2>&1)
 cleanup_test_13
@@ -213,7 +216,7 @@ else
 fi
 
 # Test 14: Config priority and install dir support
-log_test "Config file priority (install dir < ~/.codex_yolo/config < ~/.codex_yolo.conf)"
+log_test "Config file priority (install dir config < ~/.codex_yolo/config)"
 test_script_dir=$(mktemp -d)
 test_home=$(mktemp -d)
 test_script=$(mktemp)
@@ -227,7 +230,6 @@ trap cleanup_test_14 EXIT
 echo 'TEST_VAR=from_install_dir' > "${test_script_dir}/config"
 mkdir -p "${test_home}/.codex_yolo"
 echo 'TEST_VAR=from_config_dir' > "${test_home}/.codex_yolo/config"
-echo 'TEST_VAR=from_home_conf' > "${test_home}/.codex_yolo.conf"
 
 # Test that later configs override earlier ones
 cat > "${test_script}" <<TESTEOF
@@ -241,9 +243,6 @@ fi
 if [[ -f "\${HOME}/.codex_yolo/config" ]]; then
   source "\${HOME}/.codex_yolo/config"
 fi
-if [[ -f "\${HOME}/.codex_yolo.conf" ]]; then
-  source "\${HOME}/.codex_yolo.conf"
-fi
 echo "TEST_VAR=\${TEST_VAR:-unset}"
 TESTEOF
 
@@ -252,7 +251,7 @@ output=$("${test_script}" 2>&1)
 cleanup_test_14
 trap - EXIT
 
-if echo "${output}" | grep -q "TEST_VAR=from_home_conf"; then
+if echo "${output}" | grep -q "TEST_VAR=from_config_dir"; then
   log_pass "Config priority works correctly"
 else
   log_fail "Config priority incorrect"

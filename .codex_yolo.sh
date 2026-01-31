@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load configuration file if it exists
-# Priority: SCRIPT_DIR/config < ~/.codex_yolo/config < ~/.codex_yolo.conf < env vars
+# Priority: SCRIPT_DIR/config < ~/.codex_yolo/config < env vars
 if [[ -f "${SCRIPT_DIR}/config" ]]; then
   # shellcheck source=/dev/null
   source "${SCRIPT_DIR}/config"
@@ -12,10 +12,6 @@ fi
 if [[ -f "${HOME}/.codex_yolo/config" ]]; then
   # shellcheck source=/dev/null
   source "${HOME}/.codex_yolo/config"
-fi
-if [[ -f "${HOME}/.codex_yolo.conf" ]]; then
-  # shellcheck source=/dev/null
-  source "${HOME}/.codex_yolo.conf"
 fi
 
 IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"

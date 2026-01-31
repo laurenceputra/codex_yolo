@@ -16,7 +16,7 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 - **Better Error Messages**: All errors now include actionable suggestions
 
 ### ⚙️ Configuration Management  
-- **Persistent Config**: Set preferences in `~/.codex_yolo.conf`, `~/.codex_yolo/config`, or `${INSTALL_DIR}/config`
+- **Persistent Config**: Set preferences in `~/.codex_yolo/config` or `${INSTALL_DIR}/config`
 - **Example Template**: See `.codex_yolo.conf.example` in your install directory
 - **Version Commands**: Check your version with `codex_yolo version` or `--version`
 
@@ -146,10 +146,9 @@ For more detailed troubleshooting, see [EXAMPLES.md](EXAMPLES.md).
 
 Configuration can be set via environment variables or a config file. Config files are checked in this order (later sources take precedence):
 
-1. `${INSTALL_DIR}/config` (e.g., `~/.codex_yolo/config`) - Installation directory
-2. `~/.codex_yolo/config` - User config directory
-3. `~/.codex_yolo.conf` - User home directory
-4. Environment variables - Highest precedence
+1. `${INSTALL_DIR}/config` (installation directory, e.g., `~/.codex_yolo/config`)
+2. `~/.codex_yolo/config` (user config directory, same as above in default install)
+3. Environment variables - Highest precedence
 
 See `.codex_yolo.conf.example` in your installation directory for a template.
 
@@ -250,10 +249,9 @@ curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/insta
 ### Configuration Files
 
 v1.1.0 adds support for persistent configuration. Config files are checked in this order:
-1. `~/.codex_yolo.conf` (user home directory)
-2. `~/.codex_yolo/config` (installation directory alternative)
-3. `${INSTALL_DIR}/config` (installation directory, useful for shared installations)
-4. Environment variables (highest precedence, override config files)
+1. `${INSTALL_DIR}/config` (installation directory, e.g., `~/.codex_yolo/config`)
+2. `~/.codex_yolo/config` (user config directory, same as above in default install)
+3. Environment variables (highest precedence, override config files)
 
 Old versions (v1.0.x) will simply ignore these files if they exist.
 

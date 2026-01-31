@@ -38,13 +38,12 @@ codex_yolo is a bash wrapper that runs OpenAI's Codex CLI in an isolated Docker 
 Config files are loaded in ascending priority order:
 
 ```bash
-1. ${INSTALL_DIR}/config      # Team/system defaults
-2. ~/.codex_yolo/config       # User config directory
-3. ~/.codex_yolo.conf         # User home directory
-4. Environment variables      # Highest priority
+1. ${INSTALL_DIR}/config      # Team/system defaults (e.g., ~/.codex_yolo/config)
+2. ~/.codex_yolo/config       # User config directory (same as above in default install)
+3. Environment variables      # Highest priority
 ```
 
-**Rationale**: Allows team defaults while enabling user overrides, following the principle of least surprise. Environment variables maintain highest priority for CI/CD and one-off customization.
+**Rationale**: Keeps config centralized in `~/.codex_yolo` directory. Allows team defaults while enabling user overrides. Environment variables maintain highest priority for CI/CD and one-off customization.
 
 ### Security Model
 
@@ -104,7 +103,6 @@ log_verbose() { [[ "${VERBOSE}" == "1" ]] && echo "[VERBOSE] $*" >&2; }
 ```bash
 if [[ -f "${SCRIPT_DIR}/config" ]]; then source "${SCRIPT_DIR}/config"; fi
 if [[ -f "${HOME}/.codex_yolo/config" ]]; then source "${HOME}/.codex_yolo/config"; fi
-if [[ -f "${HOME}/.codex_yolo.conf" ]]; then source "${HOME}/.codex_yolo.conf"; fi
 ```
 
 **Auto-Update** - Version checking and file download
