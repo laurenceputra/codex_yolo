@@ -97,7 +97,7 @@ A comprehensive analysis document `REMOVAL_RECOMMENDATIONS.md` was created ident
 ### High-Priority Recommendations
 
 1. **Make Auto-Update Opt-In** (Currently Opt-Out)
-   - **Impact**: Estimated to affect 40-50% of users positively (those who prefer manual control)
+   - **Impact**: Estimated to benefit many users who prefer manual control (hypothesis based on industry trends)
    - **Rationale**: Reduces latency, gives users control
    - **Risk**: LOW - Easy to revert
    - **Implementation**: Change default, add `codex_yolo update` command
@@ -144,7 +144,7 @@ A comprehensive analysis document `REMOVAL_RECOMMENDATIONS.md` was created ident
 ### Estimated Total Impact
 
 If all recommendations are implemented:
-- **Code Reduction**: 150-200 lines (14-18% of current size)
+- **Code Reduction**: 150-200 lines (approximately 14-19% of current 1,073 line codebase)
 - **Maintainability**: 20% improvement
 - **User Experience**: Improved (better defaults)
 - **Risk Level**: LOW (all changes backward compatible)

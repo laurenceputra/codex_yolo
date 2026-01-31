@@ -228,7 +228,8 @@ image_exists=0
 image_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   image_exists=1
-  image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null | tr -d '\n' || true)"
+  image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null || true)"
+  image_version="$(printf '%s' "${image_version}" | tr -d '\n')"
 fi
 
 # Check if we need to build the image
