@@ -28,6 +28,7 @@ PULL_REQUESTED=0
 REPO="${CODEX_YOLO_REPO:-laurenceputra/codex_yolo}"
 BRANCH="${CODEX_YOLO_BRANCH:-main}"
 VERBOSE="${CODEX_VERBOSE:-0}"
+MOUNT_SSH="${CODEX_MOUNT_SSH:-0}"
 
 log_verbose() {
   if [[ "${VERBOSE}" == "1" ]]; then
@@ -174,6 +175,10 @@ for arg in "$@"; do
       VERBOSE=1
       continue
       ;;
+    --mount-ssh)
+      MOUNT_SSH=1
+      continue
+      ;;
   esac
   pass_args+=("${arg}")
 done
@@ -263,14 +268,14 @@ if [[ -f "${HOME}/.gitconfig" ]]; then
 fi
 
 # Mount .ssh directory if explicitly enabled
-if [[ "${CODEX_MOUNT_SSH:-0}" == "1" ]]; then
+if [[ "${MOUNT_SSH}" == "1" ]]; then
   if [[ -d "${HOME}/.ssh" ]]; then
     docker_args+=("-v" "${HOME}/.ssh:${CONTAINER_HOME}/.ssh:ro")
     log_info "⚠️  WARNING: SSH keys are now accessible inside the container."
     log_info "⚠️  Please ensure critical branches are protected in your repository settings."
     log_info "⚠️  Codex agents with --yolo mode can now push to remote repositories."
   else
-    log_error "CODEX_MOUNT_SSH=1 but ${HOME}/.ssh does not exist or is not a directory."
+    log_error "--mount-ssh flag set but ${HOME}/.ssh does not exist or is not a directory."
     exit 1
   fi
 fi

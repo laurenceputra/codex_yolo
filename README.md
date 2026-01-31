@@ -130,14 +130,17 @@ This minimal mounting approach keeps the blast radius smaller when running in `-
 If you need the Codex agent to push changes to remote repositories, you can enable SSH mounting:
 
 ```bash
-# Enable SSH mounting
+# Enable SSH mounting with the --mount-ssh flag
+codex_yolo --mount-ssh
+
+# Or use environment variable
 CODEX_MOUNT_SSH=1 codex_yolo
 
 # Or set it in your config file (~/.codex_yolo/config)
 echo "CODEX_MOUNT_SSH=1" >> ~/.codex_yolo/config
 ```
 
-**⚠️ Security Warning**: When `CODEX_MOUNT_SSH=1` is set:
+**⚠️ Security Warning**: When SSH mounting is enabled:
 - Your `~/.ssh` directory is mounted read-only into the container
 - Codex agents can use your SSH keys to push to remote repositories
 - **You should protect critical branches** in your repository settings (e.g., require pull requests, enable branch protection rules)
@@ -188,6 +191,7 @@ Available options:
 - `CODEX_VERBOSE=1` to enable verbose logging
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - `--verbose` or `-v` flag to enable verbose output
+- `--mount-ssh` flag to enable SSH key mounting for git push access; see security warning above
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
 - Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)

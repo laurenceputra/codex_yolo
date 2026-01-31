@@ -42,6 +42,7 @@
 # CODEX_VERBOSE=0
 
 # Mount .ssh directory for git push access (default: 0)
+# Can also be enabled with --mount-ssh flag
 # WARNING: Only enable this if you trust the Codex agent with your SSH keys
 # and have protected your critical branches in repository settings
 # CODEX_MOUNT_SSH=0
