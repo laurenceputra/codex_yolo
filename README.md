@@ -118,12 +118,27 @@ are shared between runs.
 - **`~/.codex`** → `~/.codex` (read-write): Credential caches for ChatGPT authentication tokens, shared between runs.
 - **`~/.gitconfig`** → `~/.gitconfig` (read-only): Your Git configuration (only if the file exists on your host). This allows Git commands inside the container to use your name, email, and other Git settings. **Important:** When the Codex CLI makes commits, it will use your `user.name` and `user.email` from this file instead of the default "Codex Fix <fix@codex-yolo.local>" identity.
 
-For security reasons, `codex_yolo` **does not** mount:
-- `~/.ssh` - SSH keys are not available inside the container
+For security reasons, `codex_yolo` **does not** mount by default:
+- `~/.ssh` - SSH keys are not available inside the container by default
 - SSH agent forwarding is disabled
 - No other host directories are mounted by default
 
 This minimal mounting approach keeps the blast radius smaller when running in `--yolo` mode.
+
+### Optional: Enable SSH for git push
+
+If you need the Codex agent to push changes to remote repositories, you can enable SSH mounting:
+
+```bash
+# Enable SSH mounting with the --mount-ssh flag
+codex_yolo --mount-ssh
+```
+
+**⚠️ Security Warning**: When SSH mounting is enabled:
+- Your `~/.ssh` directory is mounted read-only into the container
+- Codex agents can use your SSH keys to push to remote repositories
+- **You should protect critical branches** in your repository settings (e.g., require pull requests, enable branch protection rules)
+- Only enable this if you trust the Codex agent and understand the security implications
 
 ## Troubleshooting
 
@@ -169,6 +184,7 @@ Available options:
 - `CODEX_VERBOSE=1` to enable verbose logging
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - `--verbose` or `-v` flag to enable verbose output
+- `--mount-ssh` flag to enable SSH key mounting for git push access; see security warning above
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
 - Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)
@@ -190,7 +206,7 @@ Add these lines to your `.bashrc` or `.zshrc` for persistent completion.
 
 ## Security note
 
-`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. Notably, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode at the cost of private repo access from inside the container.
+`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with the `--mount-ssh` flag (see above for security considerations).
 
 The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 
