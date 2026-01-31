@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Check script syntax
+      run: |
+        bash -n .codex_yolo.sh
+        bash -n .codex_yolo_entrypoint.sh
+        bash -n .codex_yolo_diagnostics.sh
+        bash -n install.sh
+    
+    - name: Run integration tests
+      run: |
+        chmod +x tests/integration_tests.sh
+        ./tests/integration_tests.sh
+    
+    - name: Validate Dockerfile
+      run: |
+        docker buildx build --dry-run -f .codex_yolo.Dockerfile .
+    
+    - name: Check for shellcheck
+      run: |
+        if command -v shellcheck >/dev/null 2>&1; then
+          shellcheck -e SC1090,SC1091 .codex_yolo.sh .codex_yolo_entrypoint.sh .codex_yolo_diagnostics.sh install.sh || true
+        else
+          echo "shellcheck not available, skipping"
+        fi
+
+  build:
+    name: Test Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      run: |
+        DOCKER_BUILDKIT=1 docker build \
+          --build-arg BASE_IMAGE=node:20-slim \
+          --build-arg CODEX_VERSION=latest \
+          -t codex-cli-yolo:test \
+          -f .codex_yolo.Dockerfile \
+          .
+    
+    - name: Test image
+      run: |
+        # Verify the image was built
+        docker images | grep codex-cli-yolo
+        
+        # Check if codex binary exists
+        docker run --rm codex-cli-yolo:test which codex || true
+        
+        # Check version file
+        docker run --rm codex-cli-yolo:test cat /opt/codex-version || true
+
+  lint:
+    name: Lint Files
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Check file permissions
+      run: |
+        # Check that shell scripts are executable
+        test -x .codex_yolo.sh || (echo ".codex_yolo.sh not executable" && exit 1)
+        test -x .codex_yolo_diagnostics.sh || (echo ".codex_yolo_diagnostics.sh not executable" && exit 1)
+        test -x install.sh || (echo "install.sh not executable" && exit 1)
+        test -x tests/integration_tests.sh || (echo "integration_tests.sh not executable" && exit 1)
+    
+    - name: Check for trailing whitespace
+      run: |
+        # Check shell scripts for any trailing whitespace
+        if grep -r '[[:space:]]$' --include="*.sh" .; then
+          echo "Trailing whitespace found in shell scripts"
+          exit 1
+        fi
+        
+        # Check Markdown files, but allow intentional two-space line breaks (Markdown syntax)
+        if grep -r '[[:space:]]$' --include="*.md" . | grep -v '^.*[^[:space:]]  $'; then
+          echo "Trailing whitespace found in Markdown (excluding two-space line breaks)"
+          exit 1
+        fi
+    
+    - name: Validate Markdown
+      run: |
+        # Check that markdown files exist and are readable
+        test -r README.md || (echo "README.md not readable" && exit 1)
+        test -r EXAMPLES.md || (echo "EXAMPLES.md not readable" && exit 1)
+    
+    - name: Check VERSION file
+      run: |
+        test -r VERSION || (echo "VERSION file not readable" && exit 1)
+        version=$(cat VERSION)
+        echo "Version: $version"
+        # Verify version format (semantic versioning)
+        echo "$version" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || (echo "Invalid version format" && exit 1)
