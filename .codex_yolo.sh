@@ -86,17 +86,17 @@ case "$(uname -s)" in
 esac
 
 if ! command -v docker >/dev/null 2>&1; then
-  log_error "docker is not installed or not on PATH."
+  log_error "Docker is not installed or not on PATH"
   log_info "${install_hint}"
-  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help."
+  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help"
   exit 127
 fi
 
 if ! docker info >/dev/null 2>&1; then
-  log_error "Docker is installed but the daemon is not running."
-  log_info "Start Docker Desktop or the Docker Engine service, then try again."
+  log_error "Docker is installed but the daemon is not running"
+  log_info "Start Docker Desktop or the Docker Engine service, then try again"
   log_info "${install_hint}"
-  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help."
+  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help"
   exit 1
 fi
 
@@ -153,15 +153,15 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
         log_info "Re-executing with new version..."
         exec "${SCRIPT_DIR}/.codex_yolo.sh" "$@"
       else
-        echo "Warning: failed to download updates; continuing with local version."
+        log_info "Warning: failed to download updates; continuing with local version"
       fi
     fi
   fi
 fi
 
 if [[ "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]] && ! docker buildx version >/dev/null 2>&1; then
-  echo "Warning: docker buildx is not available; builds may be slower or fail on some systems."
-  echo "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
+  log_info "Warning: docker buildx is not available; builds may be slower or fail on some systems"
+  log_info "Install Docker Buildx to improve build reliability: https://docs.docker.com/build/buildx/"
 fi
 
 pass_args=()
@@ -190,17 +190,17 @@ log_verbose "Container home: ${CONTAINER_HOME}"
 log_verbose "Container workdir: ${CONTAINER_WORKDIR}"
 
 if [[ "${CONTAINER_HOME}" != /* ]]; then
-  echo "Error: CODEX_YOLO_HOME must be an absolute path inside the container."
+  log_error "CODEX_YOLO_HOME must be an absolute path inside the container"
   exit 1
 fi
 
 if [[ "${CONTAINER_WORKDIR}" != /* ]]; then
-  echo "Error: CODEX_YOLO_WORKDIR must be an absolute path inside the container."
+  log_error "CODEX_YOLO_WORKDIR must be an absolute path inside the container"
   exit 1
 fi
 
 if [[ "${IMAGE}" != "codex-cli-yolo:local" ]]; then
-  echo "Warning: CODEX_YOLO_IMAGE is set to a non-default image; use only images you trust."
+  log_info "Warning: CODEX_YOLO_IMAGE is set to a non-default image; use only images you trust"
 fi
 
 # Build the image locally (no community image pull).
@@ -304,23 +304,23 @@ fi
 
 # Ensure host config dir exists so Docker doesn’t create it as root.
 if ! mkdir -p "${HOME}/.codex"; then
-  echo "Error: unable to create ${HOME}/.codex on the host."
+  log_error "Unable to create ${HOME}/.codex on the host"
   exit 1
 fi
 
 if [[ ! -w "${HOME}/.codex" ]]; then
-  echo "Error: ${HOME}/.codex is not writable."
-  echo "Check permissions or set HOME to a writable directory."
+  log_error "${HOME}/.codex is not writable"
+  log_info "Check permissions or set HOME to a writable directory"
   exit 1
 fi
 
 if [[ -z "${latest_version}" && "${image_exists}" == "1" && "${CODEX_SKIP_VERSION_CHECK:-0}" != "1" ]]; then
-  echo "Warning: could not check latest @openai/codex version; using existing image."
+  log_info "Warning: could not check latest @openai/codex version; using existing image"
 fi
 
 if [[ "${need_build}" == "1" ]]; then
   if [[ -n "${latest_version}" && -n "${image_version}" && "${latest_version}" != "${image_version}" ]]; then
-    echo "Updating Codex CLI ${image_version} -> ${latest_version}"
+    log_info "Updating Codex CLI ${image_version} -> ${latest_version}"
   fi
   # Force BuildKit to avoid the legacy builder deprecation warning.
   DOCKER_BUILDKIT=1 docker build "${build_args[@]}" -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"

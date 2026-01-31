@@ -15,8 +15,8 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 - **Verbose Mode**: Use `--verbose` or `-v` flag for detailed debugging output
 - **Better Error Messages**: All errors now include actionable suggestions
 
-### ⚙️ Configuration Management  
-- **Persistent Config**: Set preferences in `~/.codex_yolo/config` or `${INSTALL_DIR}/config`
+### ⚙️ Configuration Management
+- **Persistent Config**: Set preferences in `~/.codex_yolo/config` (or `${INSTALL_DIR}/config`)
 - **Example Template**: See `.codex_yolo.conf.example` in your install directory
 - **Version Commands**: Check your version with `codex_yolo version` or `--version`
 
