@@ -261,28 +261,23 @@ fi
 # Test 15: SSH mounting with CODEX_MOUNT_SSH flag
 log_test "SSH mounting with CODEX_MOUNT_SSH flag"
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  # Create a temporary .ssh directory for testing
-  test_ssh_dir=$(mktemp -d)
+  # Create a temporary home directory for testing
   test_home=$(mktemp -d)
   
   cleanup_test_15() {
-    rm -rf "${test_ssh_dir}" "${test_home}"
+    rm -rf "${test_home}"
   }
   trap cleanup_test_15 EXIT
   
-  # Simulate .ssh directory
-  mkdir -p "${test_ssh_dir}"
-  touch "${test_ssh_dir}/id_rsa"
+  # Create fake .ssh directory
+  mkdir -p "${test_home}/.ssh"
+  touch "${test_home}/.ssh/id_rsa"
   
   # Test with CODEX_MOUNT_SSH=1 in dry run mode
   export HOME="${test_home}"
   export CODEX_MOUNT_SSH=1
   export CODEX_DRY_RUN=1
   export CODEX_SKIP_UPDATE_CHECK=1
-  
-  # Create fake .ssh directory
-  mkdir -p "${test_home}/.ssh"
-  touch "${test_home}/.ssh/id_rsa"
   
   output=$("${CODEX_YOLO_SH}" 2>&1 || true)
   
@@ -295,7 +290,7 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   trap - EXIT
   
   # Check if the output includes SSH mount and warning
-  if echo "${output}" | grep -q ".ssh" && echo "${output}" | grep -qi "warning.*ssh\|ssh.*warning"; then
+  if echo "${output}" | grep -q "\.ssh" && echo "${output}" | grep -qi "warning.*ssh\|ssh.*warning"; then
     log_pass "SSH mounting configuration works correctly"
   else
     log_fail "SSH mounting didn't work as expected"
