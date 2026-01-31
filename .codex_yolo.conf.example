@@ -1,6 +1,6 @@
 # codex_yolo configuration file
 # Place this file at ~/.codex_yolo/config or ~/.codex_yolo.conf
-# Environment variables take precedence over config file values
+# Precedence: CLI flags > Environment variables > Config file values
 
 # Base Docker image (default: node:20-slim)
 # CODEX_BASE_IMAGE=node:20-slim
@@ -40,9 +40,3 @@
 
 # Verbose output (default: 0)
 # CODEX_VERBOSE=0
-
-# Mount .ssh directory for git push access (default: 0)
-# Can also be enabled with --mount-ssh flag
-# WARNING: Only enable this if you trust the Codex agent with your SSH keys
-# and have protected your critical branches in repository settings
-# CODEX_MOUNT_SSH=0

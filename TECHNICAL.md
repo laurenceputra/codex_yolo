@@ -53,14 +53,14 @@ Config files are loaded in ascending priority order:
 - `~/.gitconfig` (read-only)
 
 **Optional Mounting** (disabled by default):
-- `~/.ssh` (SSH keys, read-only) - Enable with `--mount-ssh` flag or `CODEX_MOUNT_SSH=1`
+- `~/.ssh` (SSH keys, read-only) - Enable with `--mount-ssh` flag
 
 **Intentionally NOT Mounted by default**:
 - `~/.ssh` (SSH keys) - Must be explicitly enabled
 - SSH agent forwarding - Not supported
 - Other home directory contents
 
-**Rationale**: Limits blast radius in `--yolo` mode. Private repository access requires explicit setup (`--mount-ssh` flag or `CODEX_MOUNT_SSH=1`), preventing accidental exposure. When SSH is enabled, users are warned to protect critical branches.
+**Rationale**: Limits blast radius in `--yolo` mode. Private repository access requires explicit setup (`--mount-ssh` flag), preventing accidental exposure. When SSH is enabled, users are warned to protect critical branches.
 
 ### Auto-Update Strategy
 
@@ -296,7 +296,7 @@ Version check happens once per run:
 - No persistent storage in image
 
 **Not Mounted by default**:
-- SSH keys (`~/.ssh`) - Can be enabled with `CODEX_MOUNT_SSH=1`
+- SSH keys (`~/.ssh`) - Can be enabled with `--mount-ssh` flag
 - Cloud provider credentials
 - Other sensitive files
 

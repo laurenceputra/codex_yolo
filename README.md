@@ -132,12 +132,6 @@ If you need the Codex agent to push changes to remote repositories, you can enab
 ```bash
 # Enable SSH mounting with the --mount-ssh flag
 codex_yolo --mount-ssh
-
-# Or use environment variable
-CODEX_MOUNT_SSH=1 codex_yolo
-
-# Or set it in your config file (~/.codex_yolo/config)
-echo "CODEX_MOUNT_SSH=1" >> ~/.codex_yolo/config
 ```
 
 **⚠️ Security Warning**: When SSH mounting is enabled:
@@ -182,7 +176,6 @@ Available options:
 - `CODEX_YOLO_CLEANUP` (default: `1`) to chown `/workspace` to your UID on exit; set to `0` to skip
 - `CODEX_YOLO_REPO` (default: `laurenceputra/codex_yolo`) to specify a different repository for updates
 - `CODEX_YOLO_BRANCH` (default: `main`) to specify a different branch for updates
-- `CODEX_MOUNT_SSH` (default: `0`) to mount `~/.ssh` for git push access; see security warning in "Optional: Enable SSH for git push" section above
 - `CODEX_SKIP_UPDATE_CHECK=1` to skip automatic update checks
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
@@ -213,7 +206,7 @@ Add these lines to your `.bashrc` or `.zshrc` for persistent completion.
 
 ## Security note
 
-`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with `CODEX_MOUNT_SSH=1` (see above for security considerations).
+`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with the `--mount-ssh` flag (see above for security considerations).
 
 The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 
