@@ -172,13 +172,21 @@ fi
 # Test 13: Config file loading
 log_test "Config file loading"
 test_config="/tmp/test_codex_yolo.conf"
+test_config_target="/tmp/.codex_yolo.conf"
+test_script=$(mktemp)
+
+# Setup cleanup trap
+cleanup_test_13() {
+  rm -f "${test_script}" "${test_config}" "${test_config_target}"
+}
+trap cleanup_test_13 EXIT
+
 cat > "${test_config}" <<EOF
 CODEX_VERBOSE=1
 CODEX_BASE_IMAGE=node:18-slim
 EOF
 
 # Create a test script that sources the main script logic
-test_script=$(mktemp)
 cat > "${test_script}" <<'TESTEOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -191,10 +199,11 @@ echo "CODEX_BASE_IMAGE=${CODEX_BASE_IMAGE:-node:20-slim}"
 TESTEOF
 
 chmod +x "${test_script}"
-cp "${test_config}" /tmp/.codex_yolo.conf
+cp "${test_config}" "${test_config_target}"
 
 output=$("${test_script}" 2>&1)
-rm -f "${test_script}" "${test_config}" /tmp/.codex_yolo.conf
+cleanup_test_13
+trap - EXIT
 
 if echo "${output}" | grep -q "CODEX_VERBOSE=1" && echo "${output}" | grep -q "node:18-slim"; then
   log_pass "Config file loading works"

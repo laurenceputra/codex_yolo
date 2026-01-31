@@ -45,7 +45,7 @@ image_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "  ✓ Image exists: ${IMAGE}"
   
-  image_version=$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null || echo "unknown")
+  image_version=$(docker run --rm --entrypoint cat "${IMAGE}" /opt/codex-version 2>/dev/null || echo "unknown")
   echo "  Codex CLI version in image: ${image_version}"
   
   image_size=$(docker image inspect "${IMAGE}" --format='{{.Size}}' 2>/dev/null || echo "0")
