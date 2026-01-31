@@ -26,7 +26,7 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 - **Documentation**: Full changelog in `CHANGELOG.md`
 
 ### 🔧 Engineering Quality
-- **Test Suite**: 13 integration tests ensure reliability
+- **Test Suite**: 14 integration tests ensure reliability
 - **CI/CD Pipeline**: Automated testing on every change
 - **Better Code Organization**: Modular, maintainable codebase
 

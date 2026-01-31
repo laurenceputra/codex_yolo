@@ -93,7 +93,17 @@ jobs:
     
     - name: Check for trailing whitespace
       run: |
-        ! grep -r '[[:space:]]$' --include="*.sh" --include="*.md" . || (echo "Trailing whitespace found" && exit 1)
+        # Check shell scripts for any trailing whitespace
+        if grep -r '[[:space:]]$' --include="*.sh" .; then
+          echo "Trailing whitespace found in shell scripts"
+          exit 1
+        fi
+        
+        # Check Markdown files, but allow intentional two-space line breaks (Markdown syntax)
+        if grep -r '[[:space:]]$' --include="*.md" . | grep -v '^.*[^[:space:]]  $'; then
+          echo "Trailing whitespace found in Markdown (excluding two-space line breaks)"
+          exit 1
+        fi
     
     - name: Validate Markdown
       run: |

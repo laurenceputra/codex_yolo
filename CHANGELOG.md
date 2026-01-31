@@ -16,11 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration File Support**: Persistent configuration via `~/.codex_yolo.conf` or `~/.codex_yolo/config`
   - Example config file included (`.codex_yolo.conf.example`)
   - Environment variables still take precedence
-- **Version Commands**: 
+- **Version Commands**:
   - `codex_yolo version` - Show version number
   - `codex_yolo --version` - Show version with label
 
-### Added - User Experience Perspective  
+### Added - User Experience Perspective
 - **Verbose Mode**: Enable detailed logging with `--verbose` or `-v` flag or `CODEX_VERBOSE=1`
 - **Improved Error Messages**: Better error messages with actionable suggestions and troubleshooting hints
 - **Shell Completion**: Tab completion support for bash and zsh
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `log_error()` for errors
   - `log_verbose()` for debug output
 - **Better Code Organization**: Improved modularity and maintainability
-- **Documentation**: 
+- **Documentation**:
   - Added CHANGELOG.md
   - Added EXAMPLES.md
   - Enhanced README.md with new features
