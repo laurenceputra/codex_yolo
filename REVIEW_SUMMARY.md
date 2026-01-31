@@ -97,7 +97,7 @@ A comprehensive analysis document `REMOVAL_RECOMMENDATIONS.md` was created ident
 ### High-Priority Recommendations
 
 1. **Make Auto-Update Opt-In** (Currently Opt-Out)
-   - **Impact**: Affects 40-50% of users positively
+   - **Impact**: Estimated to affect 40-50% of users positively (those who prefer manual control)
    - **Rationale**: Reduces latency, gives users control
    - **Risk**: LOW - Easy to revert
    - **Implementation**: Change default, add `codex_yolo update` command

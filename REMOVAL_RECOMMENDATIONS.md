@@ -21,7 +21,7 @@ The codebase is generally lean and purposeful. Most features serve important use
 - **Complexity Reduction**: Minimal
 - **Suggested Implementation**: Add `--with-completion` flag to install script
 
-**Estimated Users Affected**: 30-40% (many users may not enable completion)
+**Estimated Users Affected**: 30-40% (estimate based on typical shell completion adoption rates)
 
 ---
 
@@ -57,7 +57,7 @@ The codebase is generally lean and purposeful. Most features serve important use
   - Add `codex_yolo update` command for manual updates
   - Keep current auto-update for users who enable it
 
-**Estimated Users Affected**: 40-50% would prefer manual updates
+**Estimated Users Affected**: 40-50% (estimate - those who prefer manual control over updates)
 
 ---
 
@@ -125,7 +125,7 @@ The codebase is generally lean and purposeful. Most features serve important use
   - Remove `${INSTALL_DIR}/config` loading
   - Keep `~/.codex_yolo/config` and environment variables
 
-**Estimated Users Affected**: <5% (very few users have separate install dir)
+**Estimated Users Affected**: <5% (assumption - most users install to default location)
 
 ---
 

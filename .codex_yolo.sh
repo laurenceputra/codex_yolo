@@ -231,13 +231,19 @@ if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null | tr -d '\n' || true)"
 fi
 
-need_build=0
 # Check if we need to build the image
+# Build if: forced rebuild, forced pull, image missing, or version mismatch
+version_mismatch=0
+if [[ -n "${latest_version}" ]] && { [[ -z "${image_version}" ]] || [[ "${latest_version}" != "${image_version}" ]]; }; then
+  version_mismatch=1
+fi
+
+need_build=0
 if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" ]] || \
    [[ "${CODEX_BUILD_PULL:-0}" == "1" ]] || \
    [[ "${PULL_REQUESTED}" == "1" ]] || \
    [[ "${image_exists}" == "0" ]] || \
-   { [[ -n "${latest_version}" ]] && { [[ -z "${image_version}" ]] || [[ "${latest_version}" != "${image_version}" ]]; }; }; then
+   [[ "${version_mismatch}" == "1" ]]; then
   need_build=1
 fi
 
