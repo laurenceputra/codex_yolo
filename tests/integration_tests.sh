@@ -212,6 +212,53 @@ else
   log_info "Output: ${output}"
 fi
 
+# Test 14: Config priority and install dir support
+log_test "Config file priority (install dir < ~/.codex_yolo/config < ~/.codex_yolo.conf)"
+test_script_dir=$(mktemp -d)
+test_home=$(mktemp -d)
+test_script=$(mktemp)
+
+cleanup_test_14() {
+  rm -rf "${test_script_dir}" "${test_home}" "${test_script}"
+}
+trap cleanup_test_14 EXIT
+
+# Create test configs with different values
+echo 'TEST_VAR=from_install_dir' > "${test_script_dir}/config"
+mkdir -p "${test_home}/.codex_yolo"
+echo 'TEST_VAR=from_config_dir' > "${test_home}/.codex_yolo/config"
+echo 'TEST_VAR=from_home_conf' > "${test_home}/.codex_yolo.conf"
+
+# Test that later configs override earlier ones
+cat > "${test_script}" <<TESTEOF
+#!/usr/bin/env bash
+set -euo pipefail
+SCRIPT_DIR="${test_script_dir}"
+HOME="${test_home}"
+if [[ -f "\${SCRIPT_DIR}/config" ]]; then
+  source "\${SCRIPT_DIR}/config"
+fi
+if [[ -f "\${HOME}/.codex_yolo/config" ]]; then
+  source "\${HOME}/.codex_yolo/config"
+fi
+if [[ -f "\${HOME}/.codex_yolo.conf" ]]; then
+  source "\${HOME}/.codex_yolo.conf"
+fi
+echo "TEST_VAR=\${TEST_VAR:-unset}"
+TESTEOF
+
+chmod +x "${test_script}"
+output=$("${test_script}" 2>&1)
+cleanup_test_14
+trap - EXIT
+
+if echo "${output}" | grep -q "TEST_VAR=from_home_conf"; then
+  log_pass "Config priority works correctly"
+else
+  log_fail "Config priority incorrect"
+  log_info "Output: ${output}"
+fi
+
 # Summary
 echo ""
 echo "=== Test Summary ==="

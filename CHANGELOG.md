@@ -56,9 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added inline documentation for complex logic
 
 ### Changed
-- Auto-update now includes diagnostics script
+- Auto-update now downloads all files including completion scripts and examples
 - Install script now downloads completion scripts and documentation
 - Improved install script output with better user guidance
+- Config file loading now supports installation directory (`${INSTALL_DIR}/config`)
 - Version bumped from 1.0.2 to 1.1.0
 
 ### Security

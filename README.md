@@ -6,6 +6,32 @@ and `--search`. By default, only your current directory, `~/.codex` credentials,
 and `~/.gitconfig` are mounted into the container. Other host paths are not
 visible, keeping the environment isolated and secure.
 
+## ✨ What's New in v1.1.0
+
+Version 1.1.0 brings major improvements to usability, troubleshooting, and developer experience:
+
+### 🔍 Diagnostics & Troubleshooting
+- **Health Check Command**: Run `codex_yolo diagnostics` (or `doctor`, `health`) to check your system configuration
+- **Verbose Mode**: Use `--verbose` or `-v` flag for detailed debugging output
+- **Better Error Messages**: All errors now include actionable suggestions
+
+### ⚙️ Configuration Management  
+- **Persistent Config**: Set preferences in `~/.codex_yolo.conf`, `~/.codex_yolo/config`, or `${INSTALL_DIR}/config`
+- **Example Template**: See `.codex_yolo.conf.example` in your install directory
+- **Version Commands**: Check your version with `codex_yolo version` or `--version`
+
+### 🚀 Developer Experience
+- **Shell Completion**: Tab completion for bash and zsh (optional install)
+- **Comprehensive Examples**: See `EXAMPLES.md` for common use cases and best practices
+- **Documentation**: Full changelog in `CHANGELOG.md`
+
+### 🔧 Engineering Quality
+- **Test Suite**: 13 integration tests ensure reliability
+- **CI/CD Pipeline**: Automated testing on every change
+- **Better Code Organization**: Modular, maintainable codebase
+
+**Upgrading from v1.0.x?** See the [Migration Guide](#migration-from-v10x) below. All changes are backward compatible.
+
 ## Requirements
 
 - Docker (Desktop or Engine)
@@ -118,7 +144,14 @@ For more detailed troubleshooting, see [EXAMPLES.md](EXAMPLES.md).
 
 ## Configuration
 
-Configuration can be set via environment variables or a config file at `~/.codex_yolo.conf` or `~/.codex_yolo/config`. See `.codex_yolo.conf.example` for a template.
+Configuration can be set via environment variables or a config file. Config files are checked in this order (later sources take precedence):
+
+1. `${INSTALL_DIR}/config` (e.g., `~/.codex_yolo/config`) - Installation directory
+2. `~/.codex_yolo/config` - User config directory
+3. `~/.codex_yolo.conf` - User home directory
+4. Environment variables - Highest precedence
+
+See `.codex_yolo.conf.example` in your installation directory for a template.
 
 Available options:
 
@@ -187,6 +220,49 @@ CODEX_BUILD_NO_CACHE=1 codex_yolo
 # or
 codex_yolo --pull
 ```
+
+## Migration from v1.0.x
+
+Version 1.1.0 is **fully backward compatible** with v1.0.x. All existing scripts and workflows will continue to work without modification.
+
+### Automatic Updates
+
+The auto-update mechanism will automatically download new features when you run `codex_yolo`:
+- Core scripts update automatically (as in v1.0.x)
+- New optional files (completion scripts, examples) are downloaded on fresh install or manual re-install
+
+### New Files in v1.1.0
+
+After upgrading, your `~/.codex_yolo` directory will contain new files:
+- `.codex_yolo_diagnostics.sh` - Health check system (auto-downloaded)
+- `.codex_yolo_completion.bash` - Bash completion (optional, via re-install)
+- `.codex_yolo_completion.zsh` - Zsh completion (optional, via re-install)
+- `.codex_yolo.conf.example` - Configuration template (optional, via re-install)
+- `EXAMPLES.md` - Usage guide (optional, via re-install)
+
+### Getting All New Features
+
+To get optional files, re-run the installer:
+```bash
+curl -fsSL https://raw.githubusercontent.com/laurenceputra/codex_yolo/main/install.sh | bash
+```
+
+### Configuration Files
+
+v1.1.0 adds support for persistent configuration. Config files are checked in this order:
+1. `~/.codex_yolo.conf` (user home directory)
+2. `~/.codex_yolo/config` (installation directory alternative)
+3. `${INSTALL_DIR}/config` (installation directory, useful for shared installations)
+4. Environment variables (highest precedence, override config files)
+
+Old versions (v1.0.x) will simply ignore these files if they exist.
+
+### Backward Compatibility Guarantee
+
+- **v1.0.x clients can still auto-update**: Old versions will download core files they understand
+- **No breaking changes**: All v1.0.x commands and environment variables work identically
+- **Graceful degradation**: New commands (like `diagnostics`) won't break old versions, they'll just show "command not found"
+- **Safe to mix versions**: You can run v1.0.x and v1.1.0 in different environments safely
 
 ## License
 

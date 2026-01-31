@@ -4,12 +4,18 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Load configuration file if it exists
+# Priority: SCRIPT_DIR/config < ~/.codex_yolo/config < ~/.codex_yolo.conf < env vars
+if [[ -f "${SCRIPT_DIR}/config" ]]; then
+  # shellcheck source=/dev/null
+  source "${SCRIPT_DIR}/config"
+fi
+if [[ -f "${HOME}/.codex_yolo/config" ]]; then
+  # shellcheck source=/dev/null
+  source "${HOME}/.codex_yolo/config"
+fi
 if [[ -f "${HOME}/.codex_yolo.conf" ]]; then
   # shellcheck source=/dev/null
   source "${HOME}/.codex_yolo.conf"
-elif [[ -f "${HOME}/.codex_yolo/config" ]]; then
-  # shellcheck source=/dev/null
-  source "${HOME}/.codex_yolo/config"
 fi
 
 IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
@@ -115,6 +121,7 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
       temp_dir="$(mktemp -d)"
       trap 'rm -rf "${temp_dir}"' EXIT
       
+      # Download core files (required)
       if curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.sh" -o "${temp_dir}/.codex_yolo.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.Dockerfile" -o "${temp_dir}/.codex_yolo.Dockerfile" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_entrypoint.sh" -o "${temp_dir}/.codex_yolo_entrypoint.sh" && \
@@ -122,6 +129,13 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.dockerignore" -o "${temp_dir}/.dockerignore" 2>/dev/null && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
         
+        # Download optional files (don't fail if these are missing)
+        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_completion.bash" -o "${temp_dir}/.codex_yolo_completion.bash" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_completion.zsh" -o "${temp_dir}/.codex_yolo_completion.zsh" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.conf.example" -o "${temp_dir}/.codex_yolo.conf.example" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/EXAMPLES.md" -o "${temp_dir}/EXAMPLES.md" 2>/dev/null || true
+        
+        # Install core files
         chmod +x "${temp_dir}/.codex_yolo.sh"
         chmod +x "${temp_dir}/.codex_yolo_diagnostics.sh"
         cp "${temp_dir}/.codex_yolo.sh" "${SCRIPT_DIR}/.codex_yolo.sh"
@@ -131,7 +145,14 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
         cp "${temp_dir}/.dockerignore" "${SCRIPT_DIR}/.dockerignore" 2>/dev/null || true
         cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"
         
+        # Install optional files if they were downloaded
+        [[ -f "${temp_dir}/.codex_yolo_completion.bash" ]] && cp "${temp_dir}/.codex_yolo_completion.bash" "${SCRIPT_DIR}/.codex_yolo_completion.bash" 2>/dev/null || true
+        [[ -f "${temp_dir}/.codex_yolo_completion.zsh" ]] && cp "${temp_dir}/.codex_yolo_completion.zsh" "${SCRIPT_DIR}/.codex_yolo_completion.zsh" 2>/dev/null || true
+        [[ -f "${temp_dir}/.codex_yolo.conf.example" ]] && cp "${temp_dir}/.codex_yolo.conf.example" "${SCRIPT_DIR}/.codex_yolo.conf.example" 2>/dev/null || true
+        [[ -f "${temp_dir}/EXAMPLES.md" ]] && cp "${temp_dir}/EXAMPLES.md" "${SCRIPT_DIR}/EXAMPLES.md" 2>/dev/null || true
+        
         log_info "Updated to version ${remote_version}"
+        log_verbose "Updated files in ${SCRIPT_DIR}"
         log_info "Re-executing with new version..."
         exec "${SCRIPT_DIR}/.codex_yolo.sh" "$@"
       else
