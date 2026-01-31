@@ -104,11 +104,11 @@ fi
 if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
   local_version=""
   if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
-    local_version="$(cat "${SCRIPT_DIR}/VERSION" | tr -d '\n' | tr -d ' ')"
+    local_version="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
   fi
   
   if command -v curl >/dev/null 2>&1; then
-    remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n' | tr -d ' ' || true)"
+    remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n ' || true)"
     
     if [[ -n "${remote_version}" && "${remote_version}" != "${local_version}" ]]; then
       log_info "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
@@ -127,10 +127,9 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
         
         # Download optional files (don't fail if these are missing)
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_completion.bash" -o "${temp_dir}/.codex_yolo_completion.bash" 2>/dev/null || true
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_completion.zsh" -o "${temp_dir}/.codex_yolo_completion.zsh" 2>/dev/null || true
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.conf.example" -o "${temp_dir}/.codex_yolo.conf.example" 2>/dev/null || true
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/EXAMPLES.md" -o "${temp_dir}/EXAMPLES.md" 2>/dev/null || true
+        for optional_file in ".codex_yolo_completion.bash" ".codex_yolo_completion.zsh" ".codex_yolo.conf.example" "EXAMPLES.md"; do
+          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/${optional_file}" -o "${temp_dir}/${optional_file}" 2>/dev/null || true
+        done
         
         # Install core files
         chmod +x "${temp_dir}/.codex_yolo.sh"
@@ -143,10 +142,9 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
         cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"
         
         # Install optional files if they were downloaded
-        [[ -f "${temp_dir}/.codex_yolo_completion.bash" ]] && cp "${temp_dir}/.codex_yolo_completion.bash" "${SCRIPT_DIR}/.codex_yolo_completion.bash" 2>/dev/null || true
-        [[ -f "${temp_dir}/.codex_yolo_completion.zsh" ]] && cp "${temp_dir}/.codex_yolo_completion.zsh" "${SCRIPT_DIR}/.codex_yolo_completion.zsh" 2>/dev/null || true
-        [[ -f "${temp_dir}/.codex_yolo.conf.example" ]] && cp "${temp_dir}/.codex_yolo.conf.example" "${SCRIPT_DIR}/.codex_yolo.conf.example" 2>/dev/null || true
-        [[ -f "${temp_dir}/EXAMPLES.md" ]] && cp "${temp_dir}/EXAMPLES.md" "${SCRIPT_DIR}/EXAMPLES.md" 2>/dev/null || true
+        for optional_file in ".codex_yolo_completion.bash" ".codex_yolo_completion.zsh" ".codex_yolo.conf.example" "EXAMPLES.md"; do
+          [[ -f "${temp_dir}/${optional_file}" ]] && cp "${temp_dir}/${optional_file}" "${SCRIPT_DIR}/${optional_file}" 2>/dev/null || true
+        done
         
         log_info "Updated to version ${remote_version}"
         log_verbose "Updated files in ${SCRIPT_DIR}"
@@ -230,19 +228,17 @@ image_exists=0
 image_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   image_exists=1
-  image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null || true)"
-  image_version="$(printf '%s' "${image_version}" | tr -d '\n')"
+  image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null | tr -d '\n' || true)"
 fi
 
 need_build=0
-if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" || "${CODEX_BUILD_PULL:-0}" == "1" || "${PULL_REQUESTED}" == "1" ]]; then
+# Check if we need to build the image
+if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" ]] || \
+   [[ "${CODEX_BUILD_PULL:-0}" == "1" ]] || \
+   [[ "${PULL_REQUESTED}" == "1" ]] || \
+   [[ "${image_exists}" == "0" ]] || \
+   { [[ -n "${latest_version}" ]] && { [[ -z "${image_version}" ]] || [[ "${latest_version}" != "${image_version}" ]]; }; }; then
   need_build=1
-elif [[ "${image_exists}" == "0" ]]; then
-  need_build=1
-elif [[ -n "${latest_version}" ]]; then
-  if [[ -z "${image_version}" || "${latest_version}" != "${image_version}" ]]; then
-    need_build=1
-  fi
 fi
 
 docker_args=(
