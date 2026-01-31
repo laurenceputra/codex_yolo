@@ -118,12 +118,30 @@ are shared between runs.
 - **`~/.codex`** → `~/.codex` (read-write): Credential caches for ChatGPT authentication tokens, shared between runs.
 - **`~/.gitconfig`** → `~/.gitconfig` (read-only): Your Git configuration (only if the file exists on your host). This allows Git commands inside the container to use your name, email, and other Git settings. **Important:** When the Codex CLI makes commits, it will use your `user.name` and `user.email` from this file instead of the default "Codex Fix <fix@codex-yolo.local>" identity.
 
-For security reasons, `codex_yolo` **does not** mount:
-- `~/.ssh` - SSH keys are not available inside the container
+For security reasons, `codex_yolo` **does not** mount by default:
+- `~/.ssh` - SSH keys are not available inside the container by default
 - SSH agent forwarding is disabled
 - No other host directories are mounted by default
 
 This minimal mounting approach keeps the blast radius smaller when running in `--yolo` mode.
+
+### Optional: Enable SSH for git push
+
+If you need the Codex agent to push changes to remote repositories, you can enable SSH mounting:
+
+```bash
+# Enable SSH mounting
+CODEX_MOUNT_SSH=1 codex_yolo
+
+# Or set it in your config file (~/.codex_yolo/config)
+echo "CODEX_MOUNT_SSH=1" >> ~/.codex_yolo/config
+```
+
+**⚠️ Security Warning**: When `CODEX_MOUNT_SSH=1` is set:
+- Your `~/.ssh` directory is mounted read-only into the container
+- Codex agents can use your SSH keys to push to remote repositories
+- **You should protect critical branches** in your repository settings (e.g., require pull requests, enable branch protection rules)
+- Only enable this if you trust the Codex agent and understand the security implications
 
 ## Troubleshooting
 
@@ -161,6 +179,7 @@ Available options:
 - `CODEX_YOLO_CLEANUP` (default: `1`) to chown `/workspace` to your UID on exit; set to `0` to skip
 - `CODEX_YOLO_REPO` (default: `laurenceputra/codex_yolo`) to specify a different repository for updates
 - `CODEX_YOLO_BRANCH` (default: `main`) to specify a different branch for updates
+- `CODEX_MOUNT_SSH` (default: `0`) to mount `~/.ssh` for git push access; see security warning in "Optional: Enable SSH for git push" section above
 - `CODEX_SKIP_UPDATE_CHECK=1` to skip automatic update checks
 - `CODEX_BUILD_NO_CACHE=1` to build without cache
 - `CODEX_BUILD_PULL=1` to pull the base image during build
@@ -190,7 +209,7 @@ Add these lines to your `.bashrc` or `.zshrc` for persistent completion.
 
 ## Security note
 
-`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. Notably, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode at the cost of private repo access from inside the container.
+`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with `CODEX_MOUNT_SSH=1` (see above for security considerations).
 
 The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 

@@ -262,6 +262,19 @@ if [[ -f "${HOME}/.gitconfig" ]]; then
   docker_args+=("-v" "${HOME}/.gitconfig:${CONTAINER_HOME}/.gitconfig:ro")
 fi
 
+# Mount .ssh directory if explicitly enabled
+if [[ "${CODEX_MOUNT_SSH:-0}" == "1" ]]; then
+  if [[ -d "${HOME}/.ssh" ]]; then
+    docker_args+=("-v" "${HOME}/.ssh:${CONTAINER_HOME}/.ssh:ro")
+    log_info "⚠️  WARNING: SSH keys are now accessible inside the container."
+    log_info "⚠️  Please ensure critical branches are protected in your repository settings."
+    log_info "⚠️  Codex agents with --yolo mode can now push to remote repositories."
+  else
+    log_error "CODEX_MOUNT_SSH=1 but ${HOME}/.ssh does not exist or is not a directory."
+    exit 1
+  fi
+fi
+
 if [[ "${CODEX_DRY_RUN:-0}" == "1" ]]; then
   if [[ "${need_build}" == "1" ]]; then
     echo "Dry run: would build image with:"
