@@ -121,9 +121,16 @@ mkdir -p "${INSTALL_DIR}"
 curl -fsSL "${raw_base}/.codex_yolo.sh" -o "${INSTALL_DIR}/.codex_yolo.sh"
 curl -fsSL "${raw_base}/.codex_yolo.Dockerfile" -o "${INSTALL_DIR}/.codex_yolo.Dockerfile"
 curl -fsSL "${raw_base}/.codex_yolo_entrypoint.sh" -o "${INSTALL_DIR}/.codex_yolo_entrypoint.sh"
+curl -fsSL "${raw_base}/.codex_yolo_diagnostics.sh" -o "${INSTALL_DIR}/.codex_yolo_diagnostics.sh"
 curl -fsSL "${raw_base}/.dockerignore" -o "${INSTALL_DIR}/.dockerignore" 2>/dev/null || true
 curl -fsSL "${raw_base}/VERSION" -o "${INSTALL_DIR}/VERSION"
+curl -fsSL "${raw_base}/.codex_yolo_completion.bash" -o "${INSTALL_DIR}/.codex_yolo_completion.bash" 2>/dev/null || true
+curl -fsSL "${raw_base}/.codex_yolo_completion.zsh" -o "${INSTALL_DIR}/.codex_yolo_completion.zsh" 2>/dev/null || true
+curl -fsSL "${raw_base}/.codex_yolo.conf.example" -o "${INSTALL_DIR}/.codex_yolo.conf.example" 2>/dev/null || true
+curl -fsSL "${raw_base}/EXAMPLES.md" -o "${INSTALL_DIR}/EXAMPLES.md" 2>/dev/null || true
+
 chmod +x "${INSTALL_DIR}/.codex_yolo.sh"
+chmod +x "${INSTALL_DIR}/.codex_yolo_diagnostics.sh"
 
 cat > "${INSTALL_DIR}/env" <<EOF
 # shellcheck shell=bash
@@ -144,5 +151,14 @@ fi
 print_docker_guidance
 
 echo "Installed to ${INSTALL_DIR}."
-echo "Restart your shell or run: source \"${profile_path}\""
-echo "Then run: codex_yolo"
+echo ""
+echo "Optional: Enable shell completion:"
+echo "  Bash: source \"${INSTALL_DIR}/.codex_yolo_completion.bash\""
+echo "  Zsh:  source \"${INSTALL_DIR}/.codex_yolo_completion.zsh\""
+echo ""
+echo "To start using codex_yolo:"
+echo "  1. Restart your shell or run: source \"${profile_path}\""
+echo "  2. Run: codex_yolo"
+echo ""
+echo "For examples and help, see: ${INSTALL_DIR}/EXAMPLES.md"
+echo "For configuration options: ${INSTALL_DIR}/.codex_yolo.conf.example"

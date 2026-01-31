@@ -2,6 +2,16 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load configuration file if it exists
+if [[ -f "${HOME}/.codex_yolo.conf" ]]; then
+  # shellcheck source=/dev/null
+  source "${HOME}/.codex_yolo.conf"
+elif [[ -f "${HOME}/.codex_yolo/config" ]]; then
+  # shellcheck source=/dev/null
+  source "${HOME}/.codex_yolo/config"
+fi
+
 IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 DOCKERFILE="${SCRIPT_DIR}/.codex_yolo.Dockerfile"
 WORKSPACE="$(pwd)"
@@ -15,6 +25,46 @@ BASE_IMAGE="${CODEX_BASE_IMAGE:-node:20-slim}"
 PULL_REQUESTED=0
 REPO="${CODEX_YOLO_REPO:-laurenceputra/codex_yolo}"
 BRANCH="${CODEX_YOLO_BRANCH:-main}"
+VERBOSE="${CODEX_VERBOSE:-0}"
+
+log_verbose() {
+  if [[ "${VERBOSE}" == "1" ]]; then
+    echo "[VERBOSE] $*" >&2
+  fi
+}
+
+log_info() {
+  echo "$*" >&2
+}
+
+log_error() {
+  echo "Error: $*" >&2
+}
+
+# Handle special commands before Docker checks
+if [[ "${#}" -gt 0 ]]; then
+  case "${1}" in
+    diagnostics|doctor|health)
+      exec "${SCRIPT_DIR}/.codex_yolo_diagnostics.sh"
+      ;;
+    version)
+      if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
+        cat "${SCRIPT_DIR}/VERSION"
+      else
+        echo "unknown"
+      fi
+      exit 0
+      ;;
+    --version)
+      if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
+        echo "codex_yolo version $(cat "${SCRIPT_DIR}/VERSION")"
+      else
+        echo "codex_yolo version unknown"
+      fi
+      exit 0
+      ;;
+  esac
+fi
 
 install_hint=""
 case "$(uname -s)" in
@@ -33,15 +83,17 @@ case "$(uname -s)" in
 esac
 
 if ! command -v docker >/dev/null 2>&1; then
-  echo "Error: docker is not installed or not on PATH."
-  echo "${install_hint}"
+  log_error "docker is not installed or not on PATH."
+  log_info "${install_hint}"
+  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help."
   exit 127
 fi
 
 if ! docker info >/dev/null 2>&1; then
-  echo "Error: Docker is installed but the daemon is not running."
-  echo "Start Docker Desktop or the Docker Engine service, then try again."
-  echo "${install_hint}"
+  log_error "Docker is installed but the daemon is not running."
+  log_info "Start Docker Desktop or the Docker Engine service, then try again."
+  log_info "${install_hint}"
+  log_info "Run 'codex_yolo diagnostics' for more troubleshooting help."
   exit 1
 fi
 
@@ -56,8 +108,9 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
     remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n' | tr -d ' ' || true)"
     
     if [[ -n "${remote_version}" && "${remote_version}" != "${local_version}" ]]; then
-      echo "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
-      echo "Updating from ${REPO}/${BRANCH}..."
+      log_info "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
+      log_info "Updating from ${REPO}/${BRANCH}..."
+      log_verbose "Downloading update files..."
       
       temp_dir="$(mktemp -d)"
       trap 'rm -rf "${temp_dir}"' EXIT
@@ -65,18 +118,21 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
       if curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.sh" -o "${temp_dir}/.codex_yolo.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.Dockerfile" -o "${temp_dir}/.codex_yolo.Dockerfile" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_entrypoint.sh" -o "${temp_dir}/.codex_yolo_entrypoint.sh" && \
+         curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_diagnostics.sh" -o "${temp_dir}/.codex_yolo_diagnostics.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.dockerignore" -o "${temp_dir}/.dockerignore" 2>/dev/null && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
         
         chmod +x "${temp_dir}/.codex_yolo.sh"
+        chmod +x "${temp_dir}/.codex_yolo_diagnostics.sh"
         cp "${temp_dir}/.codex_yolo.sh" "${SCRIPT_DIR}/.codex_yolo.sh"
         cp "${temp_dir}/.codex_yolo.Dockerfile" "${SCRIPT_DIR}/.codex_yolo.Dockerfile"
         cp "${temp_dir}/.codex_yolo_entrypoint.sh" "${SCRIPT_DIR}/.codex_yolo_entrypoint.sh"
+        cp "${temp_dir}/.codex_yolo_diagnostics.sh" "${SCRIPT_DIR}/.codex_yolo_diagnostics.sh"
         cp "${temp_dir}/.dockerignore" "${SCRIPT_DIR}/.dockerignore" 2>/dev/null || true
         cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"
         
-        echo "Updated to version ${remote_version}"
-        echo "Re-executing with new version..."
+        log_info "Updated to version ${remote_version}"
+        log_info "Re-executing with new version..."
         exec "${SCRIPT_DIR}/.codex_yolo.sh" "$@"
       else
         echo "Warning: failed to download updates; continuing with local version."
@@ -92,12 +148,24 @@ fi
 
 pass_args=()
 for arg in "$@"; do
-  if [[ "${arg}" == "--pull" ]]; then
-    PULL_REQUESTED=1
-    continue
-  fi
+  case "${arg}" in
+    --pull)
+      PULL_REQUESTED=1
+      continue
+      ;;
+    --verbose|-v)
+      VERBOSE=1
+      continue
+      ;;
+  esac
   pass_args+=("${arg}")
 done
+
+log_verbose "Script directory: ${SCRIPT_DIR}"
+log_verbose "Workspace: ${WORKSPACE}"
+log_verbose "User: ${USER_NAME}:${GROUP_NAME} (${USER_ID}:${GROUP_ID})"
+log_verbose "Container home: ${CONTAINER_HOME}"
+log_verbose "Container workdir: ${CONTAINER_WORKDIR}"
 
 if [[ "${CONTAINER_HOME}" != /* ]]; then
   echo "Error: CODEX_YOLO_HOME must be an absolute path inside the container."

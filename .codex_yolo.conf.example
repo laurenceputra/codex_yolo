@@ -1,0 +1,42 @@
+# codex_yolo configuration file
+# Place this file at ~/.codex_yolo/config or ~/.codex_yolo.conf
+# Environment variables take precedence over config file values
+
+# Base Docker image (default: node:20-slim)
+# CODEX_BASE_IMAGE=node:20-slim
+
+# Custom image name (default: codex-cli-yolo:local)
+# CODEX_YOLO_IMAGE=codex-cli-yolo:local
+
+# Container home directory (default: /home/codex)
+# CODEX_YOLO_HOME=/home/codex
+
+# Container workspace directory (default: /workspace)
+# CODEX_YOLO_WORKDIR=/workspace
+
+# Cleanup workspace permissions on exit (default: 1)
+# CODEX_YOLO_CLEANUP=1
+
+# Repository for updates (default: laurenceputra/codex_yolo)
+# CODEX_YOLO_REPO=laurenceputra/codex_yolo
+
+# Branch for updates (default: main)
+# CODEX_YOLO_BRANCH=main
+
+# Skip automatic update checks (default: 0)
+# CODEX_SKIP_UPDATE_CHECK=0
+
+# Skip version checks and reuse existing image (default: 0)
+# CODEX_SKIP_VERSION_CHECK=0
+
+# Build without cache (default: 0)
+# CODEX_BUILD_NO_CACHE=0
+
+# Pull base image during build (default: 0)
+# CODEX_BUILD_PULL=0
+
+# Dry run mode - print commands without executing (default: 0)
+# CODEX_DRY_RUN=0
+
+# Verbose output (default: 0)
+# CODEX_VERBOSE=0

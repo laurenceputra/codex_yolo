@@ -42,6 +42,30 @@ codex_yolo --help
 By default, your current repo is mounted into the container at `/workspace`,
 so make sure you run `codex_yolo` from the repo you want Codex to access.
 
+## Diagnostics and Help
+
+Check your system health and configuration:
+
+```bash
+codex_yolo diagnostics  # or: doctor, health
+```
+
+Show version:
+
+```bash
+codex_yolo --version
+```
+
+Enable verbose output:
+
+```bash
+codex_yolo --verbose
+# or
+CODEX_VERBOSE=1 codex_yolo
+```
+
+For more examples and use cases, see [EXAMPLES.md](EXAMPLES.md).
+
 ## Login
 
 The first run will prompt you to sign in. You can also log in explicitly:
@@ -77,12 +101,26 @@ This minimal mounting approach keeps the blast radius smaller when running in `-
 
 ## Troubleshooting
 
+Run diagnostics to check your setup:
+
+```bash
+codex_yolo diagnostics
+```
+
+Common issues:
+
 - **Docker not found / daemon not running:** install Docker and start the Docker
   service, then re-run `codex_yolo` (see Requirements above for links).
 - **Files missing inside the container:** only the current directory is mounted
   by default. Run `codex_yolo` from the repo you want to work on.
 
+For more detailed troubleshooting, see [EXAMPLES.md](EXAMPLES.md).
+
 ## Configuration
+
+Configuration can be set via environment variables or a config file at `~/.codex_yolo.conf` or `~/.codex_yolo/config`. See `.codex_yolo.conf.example` for a template.
+
+Available options:
 
 - `CODEX_BASE_IMAGE` (default: `node:20-slim`)
 - `CODEX_YOLO_IMAGE` (default: `codex-cli-yolo:local`; only set to images you trust)
@@ -96,11 +134,27 @@ This minimal mounting approach keeps the blast radius smaller when running in `-
 - `CODEX_BUILD_PULL=1` to pull the base image during build
 - `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse an existing image; requires that the image already exists (for example from a previous run), otherwise the script may fail instead of building it
 - `CODEX_DRY_RUN=1` to print the computed docker build/run commands without executing
+- `CODEX_VERBOSE=1` to enable verbose logging
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
+- `--verbose` or `-v` flag to enable verbose output
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
 - Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)
   and auto-updates if a new version is available.
+
+## Shell Completion
+
+Enable tab completion for bash or zsh:
+
+```bash
+# Bash
+source ~/.codex_yolo/.codex_yolo_completion.bash
+
+# Zsh
+source ~/.codex_yolo/.codex_yolo_completion.zsh
+```
+
+Add these lines to your `.bashrc` or `.zshrc` for persistent completion.
 
 ## Security note
 
