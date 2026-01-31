@@ -264,6 +264,21 @@ Old versions (v1.0.x) will simply ignore these files if they exist.
 - **Graceful degradation**: New commands (like `diagnostics`) won't break old versions, they'll just show "command not found"
 - **Safe to mix versions**: You can run v1.0.x and v1.1.0 in different environments safely
 
+## Documentation
+
+- **[EXAMPLES.md](EXAMPLES.md)** - Common usage patterns and best practices
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[TECHNICAL.md](TECHNICAL.md)** - Architecture, development guide, and technical details
+
+## Getting Help
+
+If you encounter issues:
+
+1. **Run diagnostics**: `codex_yolo diagnostics` - Check your system configuration
+2. **Check examples**: See [EXAMPLES.md](EXAMPLES.md) for common use cases
+3. **Review changelog**: See [CHANGELOG.md](CHANGELOG.md) for recent changes
+4. **Technical details**: See [TECHNICAL.md](TECHNICAL.md) for architecture and troubleshooting
+
 ## License
 
 MIT. See `LICENSE`.
