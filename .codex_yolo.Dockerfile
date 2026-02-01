@@ -7,6 +7,7 @@ RUN apt-get update \
     ca-certificates \
     git \
     gosu \
+    openssh-client \
     passwd \
     sudo \
   && rm -rf /var/lib/apt/lists/*
