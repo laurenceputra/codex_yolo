@@ -169,7 +169,16 @@ else
   log_fail "EXAMPLES.md not found"
 fi
 
-# Test 13: Config file loading
+# Test 13: Default AGENTS template exists
+log_test "Default AGENTS template exists"
+default_agents_template="${SCRIPT_DIR}/../default-AGENTS.md"
+if [[ -f "${default_agents_template}" ]]; then
+  log_pass "default-AGENTS.md found"
+else
+  log_fail "default-AGENTS.md not found"
+fi
+
+# Test 14: Config file loading
 log_test "Config file loading"
 test_config="/tmp/test_codex_yolo_config"
 test_script=$(mktemp)
@@ -215,7 +224,7 @@ else
   log_info "Output: ${output}"
 fi
 
-# Test 14: Config priority and install dir support
+# Test 15: Config priority and install dir support
 log_test "Config file priority (install dir config < ~/.codex_yolo/config)"
 test_script_dir=$(mktemp -d)
 test_home=$(mktemp -d)

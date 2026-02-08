@@ -122,6 +122,7 @@ curl -fsSL "${raw_base}/.codex_yolo.sh" -o "${INSTALL_DIR}/.codex_yolo.sh"
 curl -fsSL "${raw_base}/.codex_yolo.Dockerfile" -o "${INSTALL_DIR}/.codex_yolo.Dockerfile"
 curl -fsSL "${raw_base}/.codex_yolo_entrypoint.sh" -o "${INSTALL_DIR}/.codex_yolo_entrypoint.sh"
 curl -fsSL "${raw_base}/.codex_yolo_diagnostics.sh" -o "${INSTALL_DIR}/.codex_yolo_diagnostics.sh"
+curl -fsSL "${raw_base}/default-AGENTS.md" -o "${INSTALL_DIR}/default-AGENTS.md"
 curl -fsSL "${raw_base}/.dockerignore" -o "${INSTALL_DIR}/.dockerignore" 2>/dev/null || true
 curl -fsSL "${raw_base}/VERSION" -o "${INSTALL_DIR}/VERSION"
 curl -fsSL "${raw_base}/.codex_yolo_completion.bash" -o "${INSTALL_DIR}/.codex_yolo_completion.bash" 2>/dev/null || true
