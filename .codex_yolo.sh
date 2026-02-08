@@ -106,18 +106,18 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
   if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
     local_version="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
   fi
-  
+
   if command -v curl >/dev/null 2>&1; then
     remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n ' || true)"
-    
+
     if [[ -n "${remote_version}" && "${remote_version}" != "${local_version}" ]]; then
       log_info "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
       log_info "Updating from ${REPO}/${BRANCH}..."
       log_verbose "Downloading update files..."
-      
+
       temp_dir="$(mktemp -d)"
       trap 'rm -rf "${temp_dir}"' EXIT
-      
+
       # Download core files (required)
       if curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.sh" -o "${temp_dir}/.codex_yolo.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.Dockerfile" -o "${temp_dir}/.codex_yolo.Dockerfile" && \
@@ -125,12 +125,12 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_diagnostics.sh" -o "${temp_dir}/.codex_yolo_diagnostics.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.dockerignore" -o "${temp_dir}/.dockerignore" 2>/dev/null && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
-        
+
         # Download optional files (don't fail if these are missing)
         for optional_file in ".codex_yolo_completion.bash" ".codex_yolo_completion.zsh" ".codex_yolo.conf.example" "EXAMPLES.md"; do
           curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/${optional_file}" -o "${temp_dir}/${optional_file}" 2>/dev/null || true
         done
-        
+
         # Install core files
         chmod +x "${temp_dir}/.codex_yolo.sh"
         chmod +x "${temp_dir}/.codex_yolo_diagnostics.sh"
@@ -140,12 +140,12 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
         cp "${temp_dir}/.codex_yolo_diagnostics.sh" "${SCRIPT_DIR}/.codex_yolo_diagnostics.sh"
         cp "${temp_dir}/.dockerignore" "${SCRIPT_DIR}/.dockerignore" 2>/dev/null || true
         cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"
-        
+
         # Install optional files if they were downloaded
         for optional_file in ".codex_yolo_completion.bash" ".codex_yolo_completion.zsh" ".codex_yolo.conf.example" "EXAMPLES.md"; do
           [[ -f "${temp_dir}/${optional_file}" ]] && cp "${temp_dir}/${optional_file}" "${SCRIPT_DIR}/${optional_file}" 2>/dev/null || true
         done
-        
+
         log_info "Updated to version ${remote_version}"
         log_verbose "Updated files in ${SCRIPT_DIR}"
         log_info "Re-executing with new version..."

@@ -19,7 +19,7 @@ echo ""
 echo "🐳 Docker Status:"
 if command -v docker >/dev/null 2>&1; then
   echo "  ✓ Docker installed: $(docker --version)"
-  
+
   if docker info >/dev/null 2>&1; then
     echo "  ✓ Docker daemon running"
     docker_version=$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo "unknown")
@@ -27,7 +27,7 @@ if command -v docker >/dev/null 2>&1; then
   else
     echo "  ✗ Docker daemon not running"
   fi
-  
+
   if docker buildx version >/dev/null 2>&1; then
     echo "  ✓ Docker buildx available: $(docker buildx version | head -1)"
   else
@@ -44,14 +44,14 @@ IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 image_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "  ✓ Image exists: ${IMAGE}"
-  
+
   image_version=$(docker run --rm --entrypoint cat "${IMAGE}" /opt/codex-version 2>/dev/null || echo "unknown")
   echo "  Codex CLI version in image: ${image_version}"
-  
+
   image_size=$(docker image inspect "${IMAGE}" --format='{{.Size}}' 2>/dev/null || echo "0")
   image_size_mb=$((image_size / 1024 / 1024))
   echo "  Image size: ${image_size_mb} MB"
-  
+
   image_created=$(docker image inspect "${IMAGE}" --format='{{.Created}}' 2>/dev/null | cut -d'T' -f1 || echo "unknown")
   echo "  Image created: ${image_created}"
 else
@@ -65,7 +65,7 @@ echo "📡 Latest Version Check:"
 if command -v npm >/dev/null 2>&1; then
   latest_version=$(npm view @openai/codex version 2>/dev/null || echo "unknown")
   echo "  Latest @openai/codex: ${latest_version}"
-  
+
   if [[ -n "${image_version}" && "${image_version}" != "unknown" ]]; then
     if [[ "${latest_version}" == "${image_version}" ]]; then
       echo "  ✓ Image is up to date"
@@ -95,7 +95,7 @@ if [[ -d "${HOME}/.codex" ]]; then
   else
     echo "  ✗ Config directory not writable"
   fi
-  
+
   config_files=$(find "${HOME}/.codex" -type f 2>/dev/null | wc -l)
   echo "  Files in config: ${config_files}"
 else
@@ -108,16 +108,16 @@ echo ""
 echo "🔧 Git Configuration:"
 if [[ -f "${HOME}/.gitconfig" ]]; then
   echo "  ✓ .gitconfig exists"
-  
+
   git_name=$(git config --file "${HOME}/.gitconfig" user.name 2>/dev/null || echo "")
   git_email=$(git config --file "${HOME}/.gitconfig" user.email 2>/dev/null || echo "")
-  
+
   if [[ -n "${git_name}" ]]; then
     echo "  Git user.name: ${git_name}"
   else
     echo "  ⚠ Git user.name not set"
   fi
-  
+
   if [[ -n "${git_email}" ]]; then
     echo "  Git user.email: ${git_email}"
   else

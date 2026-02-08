@@ -66,12 +66,12 @@ chmod 0440 /etc/sudoers.d/90-codex
 if [ -f "${TARGET_HOME}/.gitconfig" ]; then
   GIT_USER_NAME="$(git config -f "${TARGET_HOME}/.gitconfig" user.name 2>/dev/null || true)"
   GIT_USER_EMAIL="$(git config -f "${TARGET_HOME}/.gitconfig" user.email 2>/dev/null || true)"
-  
+
   if [ -n "${GIT_USER_NAME}" ]; then
     export GIT_AUTHOR_NAME="${GIT_USER_NAME}"
     export GIT_COMMITTER_NAME="${GIT_USER_NAME}"
   fi
-  
+
   if [ -n "${GIT_USER_EMAIL}" ]; then
     export GIT_AUTHOR_EMAIL="${GIT_USER_EMAIL}"
     export GIT_COMMITTER_EMAIL="${GIT_USER_EMAIL}"

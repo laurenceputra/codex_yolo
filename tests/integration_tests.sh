@@ -130,7 +130,7 @@ if command -v docker >/dev/null 2>&1; then
   dryrun_output=$("${CODEX_YOLO_SH}" --help 2>&1 || true)
   unset CODEX_DRY_RUN
   unset CODEX_SKIP_UPDATE_CHECK
-  
+
   if echo "${dryrun_output}" | grep -q "Dry run"; then
     log_pass "Dry run mode works"
   else
@@ -263,31 +263,31 @@ log_test "SSH mounting with --mount-ssh flag"
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   # Create a temporary home directory for testing
   test_home=$(mktemp -d)
-  
+
   cleanup_test_15() {
     rm -rf "${test_home}"
   }
   trap cleanup_test_15 EXIT
-  
+
   # Create fake .ssh directory
   mkdir -p "${test_home}/.ssh"
   touch "${test_home}/.ssh/id_rsa"
-  
+
   # Test with --mount-ssh flag in dry run mode
   original_home="${HOME}"
   export HOME="${test_home}"
   export CODEX_DRY_RUN=1
   export CODEX_SKIP_UPDATE_CHECK=1
-  
+
   output=$("${CODEX_YOLO_SH}" --mount-ssh 2>&1 || true)
-  
+
   export HOME="${original_home}"
   unset CODEX_DRY_RUN
   unset CODEX_SKIP_UPDATE_CHECK
-  
+
   cleanup_test_15
   trap - EXIT
-  
+
   # Check if the output includes SSH mount and warning
   if echo "${output}" | grep -q "\.ssh" && echo "${output}" | grep -qi "warning.*ssh\|ssh.*warning"; then
     log_pass "SSH mounting with --mount-ssh flag works correctly"
