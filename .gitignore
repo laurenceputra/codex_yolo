@@ -32,3 +32,6 @@ logs/
 
 # OS files
 Thumbs.db
+
+# Local specifications
+.specifications/

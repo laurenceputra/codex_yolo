@@ -7,6 +7,7 @@ TARGET_USER="${TARGET_USER:-codex}"
 TARGET_GROUP="${TARGET_GROUP:-codex}"
 TARGET_HOME="${TARGET_HOME:-/home/codex}"
 CLEANUP="${CODEX_YOLO_CLEANUP:-1}"
+DEFAULT_AGENTS_TEMPLATE="${DEFAULT_AGENTS_TEMPLATE:-/etc/codex/default-AGENTS.md}"
 
 cleanup() {
   if [ "${CLEANUP}" = "1" ] || [ "${CLEANUP}" = "true" ]; then
@@ -49,6 +50,12 @@ else
 fi
 
 mkdir -p "${TARGET_HOME}/.codex" /etc/sudoers.d
+
+TARGET_AGENTS_FILE="${TARGET_HOME}/.codex/AGENTS.md"
+if [ ! -f "${TARGET_AGENTS_FILE}" ] && [ -f "${DEFAULT_AGENTS_TEMPLATE}" ]; then
+  cp "${DEFAULT_AGENTS_TEMPLATE}" "${TARGET_AGENTS_FILE}"
+fi
+
 chown -R "${TARGET_UID}:${TARGET_GID}" "${TARGET_HOME}" 2>/dev/null || true
 
 printf '%s ALL=(ALL) NOPASSWD:ALL\n' "${TARGET_USER}" > /etc/sudoers.d/90-codex
