@@ -33,7 +33,7 @@ jobs:
     
     - name: Validate Dockerfile
       run: |
-        docker buildx build --dry-run -f .codex_yolo.Dockerfile .
+        DOCKER_BUILDKIT=1 docker build -f .codex_yolo.Dockerfile -t codex-cli-yolo:ci-validate .
     
     - name: Check for shellcheck
       run: |
