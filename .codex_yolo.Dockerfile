@@ -1,6 +1,7 @@
 ARG BASE_IMAGE=node:20-slim
 FROM ${BASE_IMAGE}
 ARG CODEX_VERSION=latest
+ARG CODEX_YOLO_WRAPPER_VERSION=unknown
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -24,6 +25,9 @@ COPY .codex_yolo_entrypoint.sh /usr/local/bin/codex-entrypoint
 COPY default-AGENTS.md /etc/codex/default-AGENTS.md
 RUN chmod +x /usr/local/bin/codex-entrypoint \
   && chmod 0644 /etc/codex/default-AGENTS.md
+
+# Record the installed wrapper version so image refreshes when scripts update.
+RUN printf '%s' "${CODEX_YOLO_WRAPPER_VERSION}" > /opt/codex-yolo-version
 
 # Record the installed Codex CLI version for update checks.
 RUN node -e "process.stdout.write(require('/usr/local/lib/node_modules/@openai/codex/package.json').version)" \
