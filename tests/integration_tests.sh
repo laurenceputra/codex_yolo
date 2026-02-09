@@ -308,6 +308,26 @@ else
   log_skip "Docker not available, skipping --mount-ssh flag test"
 fi
 
+# Test 16: Wrapper version metadata is embedded in Dockerfile
+log_test "Dockerfile embeds wrapper version metadata"
+dockerfile="${SCRIPT_DIR}/../.codex_yolo.Dockerfile"
+if grep -q 'ARG CODEX_YOLO_WRAPPER_VERSION=' "${dockerfile}" && \
+   grep -q '/opt/codex-yolo-version' "${dockerfile}"; then
+  log_pass "Dockerfile contains wrapper version metadata support"
+else
+  log_fail "Dockerfile missing wrapper version metadata support"
+fi
+
+# Test 17: Main script rebuild logic includes wrapper version mismatch checks
+log_test "Main script rebuilds when wrapper VERSION changes"
+if grep -q 'CODEX_YOLO_WRAPPER_VERSION=' "${CODEX_YOLO_SH}" && \
+   grep -q '/opt/codex-yolo-version' "${CODEX_YOLO_SH}" && \
+   grep -q 'wrapper_version_mismatch' "${CODEX_YOLO_SH}"; then
+  log_pass "Wrapper version mismatch rebuild logic found"
+else
+  log_fail "Wrapper version mismatch rebuild logic missing"
+fi
+
 # Summary
 echo ""
 echo "=== Test Summary ==="

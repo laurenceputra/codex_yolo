@@ -8,8 +8,10 @@ echo ""
 # Version info
 echo "📦 Version Information:"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+local_wrapper_version="unknown"
 if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
-  echo "  codex_yolo version: $(cat "${SCRIPT_DIR}/VERSION")"
+  local_wrapper_version="$(cat "${SCRIPT_DIR}/VERSION")"
+  echo "  codex_yolo version: ${local_wrapper_version}"
 else
   echo "  codex_yolo version: unknown (VERSION file missing)"
 fi
@@ -42,11 +44,24 @@ echo ""
 echo "🖼️  Image Status:"
 IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 image_version=""
+image_wrapper_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "  ✓ Image exists: ${IMAGE}"
 
   image_version=$(docker run --rm --entrypoint cat "${IMAGE}" /opt/codex-version 2>/dev/null || echo "unknown")
   echo "  Codex CLI version in image: ${image_version}"
+
+  image_wrapper_version=$(docker run --rm --entrypoint cat "${IMAGE}" /opt/codex-yolo-version 2>/dev/null || true)
+  if [[ -n "${image_wrapper_version}" ]]; then
+    echo "  codex_yolo wrapper version in image: ${image_wrapper_version}"
+    if [[ "${image_wrapper_version}" == "${local_wrapper_version}" ]]; then
+      echo "  ✓ Wrapper version in image is up to date"
+    else
+      echo "  ⚠ Wrapper update needed: ${image_wrapper_version} -> ${local_wrapper_version}"
+    fi
+  else
+    echo "  ⚠ Wrapper version metadata missing in image (legacy image)"
+  fi
 
   image_size=$(docker image inspect "${IMAGE}" --format='{{.Size}}' 2>/dev/null || echo "0")
   image_size_mb=$((image_size / 1024 / 1024))

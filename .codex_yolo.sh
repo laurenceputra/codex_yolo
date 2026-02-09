@@ -29,6 +29,10 @@ REPO="${CODEX_YOLO_REPO:-laurenceputra/codex_yolo}"
 BRANCH="${CODEX_YOLO_BRANCH:-main}"
 VERBOSE="${CODEX_VERBOSE:-0}"
 MOUNT_SSH=0
+WRAPPER_VERSION="unknown"
+if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
+  WRAPPER_VERSION="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
+fi
 
 log_verbose() {
   if [[ "${VERBOSE}" == "1" ]]; then
@@ -102,16 +106,11 @@ fi
 
 # Check for updates unless explicitly disabled
 if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
-  local_version=""
-  if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
-    local_version="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
-  fi
-
   if command -v curl >/dev/null 2>&1; then
     remote_version="$(curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" 2>/dev/null | tr -d '\n ' || true)"
 
-    if [[ -n "${remote_version}" && "${remote_version}" != "${local_version}" ]]; then
-      log_info "codex_yolo update available: ${local_version:-unknown} -> ${remote_version}"
+    if [[ -n "${remote_version}" && "${remote_version}" != "${WRAPPER_VERSION}" ]]; then
+      log_info "codex_yolo update available: ${WRAPPER_VERSION} -> ${remote_version}"
       log_info "Updating from ${REPO}/${BRANCH}..."
       log_verbose "Downloading update files..."
 
@@ -205,6 +204,7 @@ fi
 
 # Build the image locally (no community image pull).
 build_args=(--build-arg "BASE_IMAGE=${BASE_IMAGE}")
+build_args+=(--build-arg "CODEX_YOLO_WRAPPER_VERSION=${WRAPPER_VERSION}")
 if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" ]]; then
   build_args+=(--no-cache)
 fi
@@ -228,17 +228,26 @@ fi
 
 image_exists=0
 image_version=""
+image_wrapper_version=""
 if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   image_exists=1
   image_version="$(docker run --rm "${IMAGE}" cat /opt/codex-version 2>/dev/null || true)"
   image_version="$(printf '%s' "${image_version}" | tr -d '\n')"
+  image_wrapper_version="$(docker run --rm "${IMAGE}" cat /opt/codex-yolo-version 2>/dev/null || true)"
+  image_wrapper_version="$(printf '%s' "${image_wrapper_version}" | tr -d '\n')"
 fi
 
 # Check if we need to build the image
-# Build if: forced rebuild, forced pull, image missing, or version mismatch
+# Build if: forced rebuild, forced pull, image missing, CLI version mismatch,
+# or wrapper version mismatch.
 version_mismatch=0
 if [[ -n "${latest_version}" ]] && { [[ -z "${image_version}" ]] || [[ "${latest_version}" != "${image_version}" ]]; }; then
   version_mismatch=1
+fi
+
+wrapper_version_mismatch=0
+if [[ "${image_exists}" == "1" ]] && [[ "${image_wrapper_version}" != "${WRAPPER_VERSION}" ]]; then
+  wrapper_version_mismatch=1
 fi
 
 need_build=0
@@ -246,7 +255,8 @@ if [[ "${CODEX_BUILD_NO_CACHE:-0}" == "1" ]] || \
    [[ "${CODEX_BUILD_PULL:-0}" == "1" ]] || \
    [[ "${PULL_REQUESTED}" == "1" ]] || \
    [[ "${image_exists}" == "0" ]] || \
-   [[ "${version_mismatch}" == "1" ]]; then
+   [[ "${version_mismatch}" == "1" ]] || \
+   [[ "${wrapper_version_mismatch}" == "1" ]]; then
   need_build=1
 fi
 
@@ -326,6 +336,13 @@ fi
 if [[ "${need_build}" == "1" ]]; then
   if [[ -n "${latest_version}" && -n "${image_version}" && "${latest_version}" != "${image_version}" ]]; then
     log_info "Updating Codex CLI ${image_version} -> ${latest_version}"
+  fi
+  if [[ "${wrapper_version_mismatch}" == "1" ]]; then
+    if [[ -n "${image_wrapper_version}" ]]; then
+      log_info "Updating codex_yolo wrapper ${image_wrapper_version} -> ${WRAPPER_VERSION}"
+    else
+      log_info "Rebuilding image to add codex_yolo wrapper metadata (${WRAPPER_VERSION})"
+    fi
   fi
   # Force BuildKit to avoid the legacy builder deprecation warning.
   DOCKER_BUILDKIT=1 docker build "${build_args[@]}" -t "${IMAGE}" -f "${DOCKERFILE}" "${SCRIPT_DIR}"
