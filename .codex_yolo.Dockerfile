@@ -6,10 +6,12 @@ ARG CODEX_YOLO_WRAPPER_VERSION=unknown
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
+    gh \
     git \
     gosu \
     openssh-client \
     passwd \
+    ripgrep \
     sudo \
   && rm -rf /var/lib/apt/lists/*
 

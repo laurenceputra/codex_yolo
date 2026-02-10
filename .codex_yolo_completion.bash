@@ -8,7 +8,7 @@ _codex_yolo_complete() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # codex_yolo specific commands and flags
-  local codex_yolo_opts="diagnostics doctor health version --version --verbose -v --pull --help"
+  local codex_yolo_opts="diagnostics doctor health version --version --verbose -v --pull --gh --help"
   
   # Common codex CLI commands (pass-through)
   local codex_opts="login --help --yolo --search --device-auth"

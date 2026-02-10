@@ -29,6 +29,7 @@ REPO="${CODEX_YOLO_REPO:-laurenceputra/codex_yolo}"
 BRANCH="${CODEX_YOLO_BRANCH:-main}"
 VERBOSE="${CODEX_VERBOSE:-0}"
 MOUNT_SSH=0
+MOUNT_GH=0
 WRAPPER_VERSION="unknown"
 if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
   WRAPPER_VERSION="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
@@ -178,6 +179,10 @@ for arg in "$@"; do
       MOUNT_SSH=1
       continue
       ;;
+    --gh)
+      MOUNT_GH=1
+      continue
+      ;;
   esac
   pass_args+=("${arg}")
 done
@@ -280,6 +285,31 @@ fi
 
 if [[ -f "${HOME}/.gitconfig" ]]; then
   docker_args+=("-v" "${HOME}/.gitconfig:${CONTAINER_HOME}/.gitconfig:ro")
+fi
+
+# Mount .copilot directory if explicitly enabled for GitHub CLI workflows.
+if [[ "${MOUNT_GH}" == "1" ]]; then
+  if ! command -v gh >/dev/null 2>&1; then
+    log_error "--gh requires GitHub CLI (gh) installed on the host."
+    log_info "Install gh, authenticate on host, and retry: gh auth login"
+    exit 1
+  fi
+
+  if ! gh auth status >/dev/null 2>&1; then
+    log_error "--gh requires host GitHub authentication."
+    log_info "Run on host first: gh auth login"
+    exit 1
+  fi
+
+  if [[ -d "${HOME}/.copilot" ]]; then
+    docker_args+=("-v" "${HOME}/.copilot:${CONTAINER_HOME}/.copilot")
+    log_info "Warning: ${HOME}/.copilot is now mounted inside the container."
+    log_info "This enables gh workflows and GitHub Copilot-related host context access."
+  else
+    log_error "--gh enabled but ${HOME}/.copilot does not exist or is not a directory."
+    log_info "Ensure host Copilot data exists after logging in with gh, then retry."
+    exit 1
+  fi
 fi
 
 # Mount .ssh directory if explicitly enabled
