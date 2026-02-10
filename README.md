@@ -37,6 +37,7 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 - Docker (Desktop or Engine)
 - Bash (macOS/Linux; Windows via WSL recommended)
 - Docker Buildx (recommended for reliable builds): https://docs.docker.com/build/buildx/
+- Host `gh` login (`gh auth login`) only if you plan to use `--gh`
 
 ## Install
 
@@ -120,6 +121,7 @@ are shared between runs.
 
 For security reasons, `codex_yolo` **does not** mount by default:
 - `~/.ssh` - SSH keys are not available inside the container by default
+- `~/.copilot` - GitHub Copilot/GitHub CLI related state is not available unless explicitly enabled
 - SSH agent forwarding is disabled
 - No other host directories are mounted by default
 
@@ -139,6 +141,21 @@ codex_yolo --mount-ssh
 - Codex agents can use your SSH keys to push to remote repositories
 - **You should protect critical branches** in your repository settings (e.g., require pull requests, enable branch protection rules)
 - Only enable this if you trust the Codex agent and understand the security implications
+
+### Optional: Enable GitHub CLI Copilot Mount
+
+If you need `gh` workflows that rely on host Copilot state, enable `--gh`:
+
+```bash
+codex_yolo --gh
+```
+
+Requirements for `--gh`:
+- `gh` must be installed on the host.
+- You must already be logged in on the host via `gh auth login`.
+- `~/.copilot` must exist on the host.
+
+When enabled, `~/.copilot` is mounted into the container at `~/.copilot`.
 
 ## Troubleshooting
 
@@ -185,6 +202,7 @@ Available options:
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - `--verbose` or `-v` flag to enable verbose output
 - `--mount-ssh` flag to enable SSH key mounting for git push access; see security warning above
+- `--gh` flag to mount host `~/.copilot` after validating host `gh` auth
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
 - Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)
@@ -206,7 +224,7 @@ Add these lines to your `.bashrc` or `.zshrc` for persistent completion.
 
 ## Security note
 
-`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh` is not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with the `--mount-ssh` flag (see above for security considerations).
+`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh`/`~/.copilot` are not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with `--mount-ssh` and GitHub Copilot state mounting with `--gh`.
 
 The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 

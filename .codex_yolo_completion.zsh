@@ -17,6 +17,7 @@ _codex_yolo() {
     '--verbose[Enable verbose output]'
     '-v[Enable verbose output]'
     '--pull[Pull base image before building]'
+    '--gh[Mount host ~/.copilot after verifying host gh auth]'
     '--help[Show help information]'
   )
 

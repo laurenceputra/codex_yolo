@@ -267,7 +267,7 @@ else
   log_info "Output: ${output}"
 fi
 
-# Test 15: SSH mounting with --mount-ssh flag
+# Test 16: SSH mounting with --mount-ssh flag
 log_test "SSH mounting with --mount-ssh flag"
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   # Create a temporary home directory for testing
@@ -308,7 +308,7 @@ else
   log_skip "Docker not available, skipping --mount-ssh flag test"
 fi
 
-# Test 16: Wrapper version metadata is embedded in Dockerfile
+# Test 17: Wrapper version metadata is embedded in Dockerfile
 log_test "Dockerfile embeds wrapper version metadata"
 dockerfile="${SCRIPT_DIR}/../.codex_yolo.Dockerfile"
 if grep -q 'ARG CODEX_YOLO_WRAPPER_VERSION=' "${dockerfile}" && \
@@ -318,7 +318,7 @@ else
   log_fail "Dockerfile missing wrapper version metadata support"
 fi
 
-# Test 17: Main script rebuild logic includes wrapper version mismatch checks
+# Test 18: Main script rebuild logic includes wrapper version mismatch checks
 log_test "Main script rebuilds when wrapper VERSION changes"
 if grep -q 'CODEX_YOLO_WRAPPER_VERSION=' "${CODEX_YOLO_SH}" && \
    grep -q '/opt/codex-yolo-version' "${CODEX_YOLO_SH}" && \
@@ -326,6 +326,62 @@ if grep -q 'CODEX_YOLO_WRAPPER_VERSION=' "${CODEX_YOLO_SH}" && \
   log_pass "Wrapper version mismatch rebuild logic found"
 else
   log_fail "Wrapper version mismatch rebuild logic missing"
+fi
+
+# Test 19: Dockerfile includes rg and gh packages
+log_test "Dockerfile installs rg and gh"
+if grep -q 'gh' "${dockerfile}" && grep -q 'ripgrep' "${dockerfile}"; then
+  log_pass "Dockerfile includes gh and ripgrep packages"
+else
+  log_fail "Dockerfile missing gh and/or ripgrep package install"
+fi
+
+# Test 20: --gh mounting in dry run mode
+log_test "GitHub mount with --gh flag"
+if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  test_home=$(mktemp -d)
+  fake_bin=$(mktemp -d)
+  original_home="${HOME}"
+  original_path="${PATH}"
+
+  cleanup_test_20() {
+    rm -rf "${test_home}" "${fake_bin}"
+    export HOME="${original_home}"
+    export PATH="${original_path}"
+    unset CODEX_DRY_RUN
+    unset CODEX_SKIP_UPDATE_CHECK
+    unset CODEX_SKIP_VERSION_CHECK
+  }
+  trap cleanup_test_20 EXIT
+
+  mkdir -p "${test_home}/.copilot" "${test_home}/.codex"
+  cat > "${fake_bin}/gh" <<'TESTEOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "auth" ]] && [[ "${2:-}" == "status" ]]; then
+  exit 0
+fi
+exit 0
+TESTEOF
+  chmod +x "${fake_bin}/gh"
+
+  export HOME="${test_home}"
+  export PATH="${fake_bin}:${PATH}"
+  export CODEX_DRY_RUN=1
+  export CODEX_SKIP_UPDATE_CHECK=1
+  export CODEX_SKIP_VERSION_CHECK=1
+
+  output=$("${CODEX_YOLO_SH}" --gh 2>&1 || true)
+  cleanup_test_20
+  trap - EXIT
+
+  if echo "${output}" | grep -q "\.copilot" && echo "${output}" | grep -q "Dry run"; then
+    log_pass "--gh flag mounts ~/.copilot in dry run output"
+  else
+    log_fail "--gh flag did not mount ~/.copilot as expected"
+    log_info "Output snippet: $(echo "${output}" | grep -i copilot | head -5)"
+  fi
+else
+  log_skip "Docker not available, skipping --gh flag test"
 fi
 
 # Summary

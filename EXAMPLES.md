@@ -90,6 +90,17 @@ CODEX_BUILD_NO_CACHE=1 codex_yolo
 CODEX_BUILD_NO_CACHE=1 codex_yolo --pull
 ```
 
+### Enable GitHub CLI Copilot Mount
+Use this when you need `gh` workflows that depend on host Copilot state:
+```bash
+codex_yolo --gh
+```
+
+Prerequisites:
+- Host has `gh` installed
+- Host is already authenticated (`gh auth login`)
+- Host `~/.copilot` directory exists
+
 ### Dry Run
 Preview Docker commands without executing:
 ```bash
