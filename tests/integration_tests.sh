@@ -354,7 +354,7 @@ if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   }
   trap cleanup_test_20 EXIT
 
-  mkdir -p "${test_home}/.copilot" "${test_home}/.codex"
+  mkdir -p "${test_home}/.copilot" "${test_home}/.codex" "${test_home}/.config/gh"
   cat > "${fake_bin}/gh" <<'TESTEOF'
 #!/usr/bin/env bash
 if [[ "${1:-}" == "auth" ]] && [[ "${2:-}" == "status" ]]; then
@@ -374,11 +374,11 @@ TESTEOF
   cleanup_test_20
   trap - EXIT
 
-  if echo "${output}" | grep -q "\.copilot" && echo "${output}" | grep -q "Dry run"; then
-    log_pass "--gh flag mounts ~/.copilot in dry run output"
+  if echo "${output}" | grep -q "\.copilot" && echo "${output}" | grep -q "\.config/gh" && echo "${output}" | grep -q "Dry run"; then
+    log_pass "--gh flag mounts ~/.copilot and ~/.config/gh in dry run output"
   else
-    log_fail "--gh flag did not mount ~/.copilot as expected"
-    log_info "Output snippet: $(echo "${output}" | grep -i copilot | head -5)"
+    log_fail "--gh flag did not mount ~/.copilot and ~/.config/gh as expected"
+    log_info "Output snippet: $(echo "${output}" | grep -E -i 'copilot|config/gh' | head -5)"
   fi
 else
   log_skip "Docker not available, skipping --gh flag test"

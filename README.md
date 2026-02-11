@@ -122,6 +122,7 @@ are shared between runs.
 For security reasons, `codex_yolo` **does not** mount by default:
 - `~/.ssh` - SSH keys are not available inside the container by default
 - `~/.copilot` - GitHub Copilot/GitHub CLI related state is not available unless explicitly enabled
+- `~/.config/gh` - GitHub CLI host auth config is not available unless explicitly enabled
 - SSH agent forwarding is disabled
 - No other host directories are mounted by default
 
@@ -156,6 +157,7 @@ Requirements for `--gh`:
 - `~/.copilot` must exist on the host.
 
 When enabled, `~/.copilot` is mounted into the container at `~/.copilot`.
+If present on the host, `~/.config/gh` is also mounted into the container at `~/.config/gh`.
 
 ## Troubleshooting
 
@@ -202,7 +204,7 @@ Available options:
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - `--verbose` or `-v` flag to enable verbose output
 - `--mount-ssh` flag to enable SSH key mounting for git push access; see security warning above
-- `--gh` flag to mount host `~/.copilot` after validating host `gh` auth
+- `--gh` flag to mount host `~/.copilot` and host `~/.config/gh` (if present) after validating host `gh` auth
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
 - Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)
@@ -224,7 +226,7 @@ Add these lines to your `.bashrc` or `.zshrc` for persistent completion.
 
 ## Security note
 
-`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh`/`~/.copilot` are not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with `--mount-ssh` and GitHub Copilot state mounting with `--gh`.
+`codex_yolo` deliberately limits what gets mounted from the host. See the "What gets mounted from the host" section above for details. By default, your SSH agent is not forwarded and `~/.ssh`/`~/.copilot`/`~/.config/gh` are not mounted, keeping the blast radius smaller when running in `--yolo` mode. This comes at the cost of private repo access from inside the container unless you explicitly enable SSH mounting with `--mount-ssh` and GitHub Copilot/GitHub CLI state mounting with `--gh`.
 
 The container enables passwordless `sudo` for the mapped user to allow system installs. Use with care; `sudo` writes into `/workspace` are cleaned up via a chown on exit, but they still run as root inside the container.
 
