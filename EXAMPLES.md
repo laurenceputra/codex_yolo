@@ -101,6 +101,8 @@ Prerequisites:
 - Host is already authenticated (`gh auth login`)
 - Host `~/.copilot` directory exists
 
+When enabled, `~/.copilot` is mounted and `~/.config/gh` is also mounted if it exists on the host.
+
 ### Dry Run
 Preview Docker commands without executing:
 ```bash

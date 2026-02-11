@@ -304,6 +304,12 @@ if [[ "${MOUNT_GH}" == "1" ]]; then
   if [[ -d "${HOME}/.copilot" ]]; then
     docker_args+=("-v" "${HOME}/.copilot:${CONTAINER_HOME}/.copilot")
     log_info "Warning: ${HOME}/.copilot is now mounted inside the container."
+    if [[ -d "${HOME}/.config/gh" ]]; then
+      docker_args+=("-v" "${HOME}/.config/gh:${CONTAINER_HOME}/.config/gh")
+      log_info "Warning: ${HOME}/.config/gh is now mounted inside the container."
+    else
+      log_info "Warning: ${HOME}/.config/gh does not exist on the host; gh auth state may be unavailable inside the container."
+    fi
     log_info "This enables gh workflows and GitHub Copilot-related host context access."
   else
     log_error "--gh enabled but ${HOME}/.copilot does not exist or is not a directory."
