@@ -5,6 +5,28 @@ All notable changes to codex_yolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.7] - 2026-03-22
+
+### Added
+- Optional `--mount-ssh` flag to mount host SSH configuration and keys for Git-over-SSH workflows inside the container.
+- Installed `openssh-client` in the container image to support SSH-based operations.
+- Added fallback default `~/.codex/AGENTS.md` behavior in the container and shipped `default-AGENTS.md` as the bootstrap template.
+- Added `gh` and `rg` tooling to the container image, plus optional `--gh` mounting for GitHub CLI/Copilot workflows.
+
+### Changed
+- Wrapper/image coordination now rebuilds when wrapper `VERSION` changes to avoid stale image/script mismatches.
+- Refactored wrapper logic and documentation to reduce complexity and align examples/help text around new mount options.
+- `--gh` mounting now supports writable GitHub CLI config for authenticated CLI workflows.
+- Version advanced across the 1.1.x line up to `1.1.7`.
+
+### Fixed
+- Fixed default AGENTS template bootstrap behavior in install and update flows.
+- Addressed wrapper inconsistencies and reduced duplicated logic in command handling and messaging.
+- Corrected CI/install flow issues around Dockerfile validation and script execution permissions.
+
+### Security
+- Credential mounts remain explicit and opt-in: SSH material and GitHub CLI config are only exposed when `--mount-ssh` or `--gh` is provided.
+
 ## [1.1.0] - 2026-01-31
 
 ### Added - Product Perspective
@@ -71,5 +93,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Previous release with basic functionality. See git history for details.
 
+[1.1.7]: https://github.com/laurenceputra/codex_yolo/compare/v1.1.0...v1.1.7
 [1.1.0]: https://github.com/laurenceputra/codex_yolo/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/laurenceputra/codex_yolo/releases/tag/v1.0.2
