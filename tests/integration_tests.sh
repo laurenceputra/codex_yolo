@@ -5,6 +5,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_YOLO_SH="${SCRIPT_DIR}/../.codex_yolo.sh"
 DIAGNOSTICS_SH="${SCRIPT_DIR}/../.codex_yolo_diagnostics.sh"
+CHANGELOG_SCRIPT="${SCRIPT_DIR}/../scripts/generate_changelog.sh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -60,7 +61,7 @@ fi
 
 # Test 3: Check if scripts are executable
 log_test "Scripts are executable"
-if [[ -x "${CODEX_YOLO_SH}" ]] && [[ -x "${DIAGNOSTICS_SH}" ]]; then
+if [[ -x "${CODEX_YOLO_SH}" ]] && [[ -x "${DIAGNOSTICS_SH}" ]] && [[ -x "${CHANGELOG_SCRIPT}" ]]; then
   log_pass "Scripts have execute permissions"
 else
   log_fail "Scripts missing execute permissions"
@@ -68,7 +69,9 @@ fi
 
 # Test 4: Check for syntax errors
 log_test "Shell script syntax check"
-if bash -n "${CODEX_YOLO_SH}" 2>/dev/null && bash -n "${DIAGNOSTICS_SH}" 2>/dev/null; then
+if bash -n "${CODEX_YOLO_SH}" 2>/dev/null && \
+   bash -n "${DIAGNOSTICS_SH}" 2>/dev/null && \
+   bash -n "${CHANGELOG_SCRIPT}" 2>/dev/null; then
   log_pass "No syntax errors"
 else
   log_fail "Syntax errors found"
@@ -382,6 +385,146 @@ TESTEOF
   fi
 else
   log_skip "Docker not available, skipping --gh flag test"
+fi
+
+# Test 21: Changelog synthesizer produces stable grouped markdown
+log_test "Changelog synthesizer groups commits into stable markdown"
+test_repo=$(mktemp -d)
+
+cleanup_test_21() {
+  rm -rf "${test_repo}"
+}
+trap cleanup_test_21 EXIT
+
+git -C "${test_repo}" init -q
+git -C "${test_repo}" config user.name "Test User"
+git -C "${test_repo}" config user.email "test@example.com"
+
+cat > "${test_repo}/notes.txt" <<'TESTEOF'
+seed
+TESTEOF
+git -C "${test_repo}" add notes.txt
+git -C "${test_repo}" commit -qm "chore: initial fixture"
+base_commit="$(git -C "${test_repo}" rev-parse HEAD)"
+
+cat > "${test_repo}/notes.txt" <<'TESTEOF'
+seed
+feature
+TESTEOF
+git -C "${test_repo}" add notes.txt
+git -C "${test_repo}" commit -qm "feat: add changelog synthesizer (#12)"
+
+cat > "${test_repo}/notes.txt" <<'TESTEOF'
+seed
+feature
+docs
+TESTEOF
+git -C "${test_repo}" add notes.txt
+git -C "${test_repo}" commit -qm "docs: update maintainer docs"
+
+cat > "${test_repo}/notes.txt" <<'TESTEOF'
+seed
+feature
+docs
+fix
+TESTEOF
+git -C "${test_repo}" add notes.txt
+git -C "${test_repo}" commit -qm "fix(parser): handle empty ranges (#13)"
+
+cat > "${test_repo}/notes.txt" <<'TESTEOF'
+seed
+feature
+docs
+fix
+security
+TESTEOF
+git -C "${test_repo}" add notes.txt
+git -C "${test_repo}" commit -qm "security: harden token mount (#14)"
+head_commit="$(git -C "${test_repo}" rev-parse HEAD)"
+
+output="$(
+  cd "${test_repo}" &&
+  "${CHANGELOG_SCRIPT}" --from "${base_commit}" --to "${head_commit}"
+)"
+
+expected_output="$(cat <<EOF
+<!-- Draft changelog generated from ${base_commit}..${head_commit}. Review and edit before publishing. -->
+
+## [Unreleased]
+
+### Added
+- Add changelog synthesizer (#12)
+
+### Changed
+- Update maintainer docs
+
+### Fixed
+- Handle empty ranges (#13)
+
+### Security
+- Harden token mount (#14)
+
+EOF
+)"
+
+cleanup_test_21
+trap - EXIT
+
+if [[ "${output}" == "${expected_output}" ]]; then
+  log_pass "Changelog synthesis grouped commits into deterministic sections"
+else
+  log_fail "Changelog synthesis output did not match expected markdown"
+  log_info "Expected:"
+  log_info "${expected_output}"
+  log_info "Actual:"
+  log_info "${output}"
+fi
+
+# Test 22: Changelog synthesizer handles empty ranges cleanly
+log_test "Changelog synthesizer handles empty ranges"
+test_repo=$(mktemp -d)
+
+cleanup_test_22() {
+  rm -rf "${test_repo}"
+}
+trap cleanup_test_22 EXIT
+
+git -C "${test_repo}" init -q
+git -C "${test_repo}" config user.name "Test User"
+git -C "${test_repo}" config user.email "test@example.com"
+
+cat > "${test_repo}/notes.txt" <<'TESTEOF'
+seed
+TESTEOF
+git -C "${test_repo}" add notes.txt
+git -C "${test_repo}" commit -qm "chore: initial fixture"
+head_commit="$(git -C "${test_repo}" rev-parse HEAD)"
+
+output="$(
+  cd "${test_repo}" &&
+  "${CHANGELOG_SCRIPT}" --from "${head_commit}" --to "${head_commit}"
+)"
+
+expected_output="$(cat <<EOF
+<!-- Draft changelog generated from ${head_commit}..${head_commit}. Review and edit before publishing. -->
+
+## [Unreleased]
+
+_No notable changes in this range._
+EOF
+)"
+
+cleanup_test_22
+trap - EXIT
+
+if [[ "${output}" == "${expected_output}" ]]; then
+  log_pass "Empty changelog ranges are reported cleanly"
+else
+  log_fail "Empty changelog range output did not match expected markdown"
+  log_info "Expected:"
+  log_info "${expected_output}"
+  log_info "Actual:"
+  log_info "${output}"
 fi
 
 # Summary

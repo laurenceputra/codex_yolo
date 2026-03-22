@@ -93,6 +93,29 @@ CODEX_VERBOSE=1 codex_yolo
 
 For more examples and use cases, see [EXAMPLES.md](EXAMPLES.md).
 
+## Maintainer Changelog Drafts
+
+Maintainers can generate a draft changelog section directly from git commits with
+`scripts/generate_changelog.sh`. The helper is intentionally scoped to
+maintainer workflows: it prints markdown to stdout for manual review instead of
+editing `CHANGELOG.md` or publishing a release automatically.
+
+```bash
+scripts/generate_changelog.sh --from 6d8555b --to HEAD
+```
+
+The `--from` ref is required because this repository does not currently use
+release tags, so the script cannot infer a safe release boundary on its own.
+`--to` defaults to `HEAD`.
+
+```bash
+scripts/generate_changelog.sh --from main~5
+```
+
+The generated markdown uses Keep a Changelog-style `Added`, `Changed`, `Fixed`,
+and `Security` sections. Treat the output as a draft and review it before
+copying entries into `CHANGELOG.md`.
+
 ## Login
 
 The first run will prompt you to sign in. You can also log in explicitly:

@@ -25,6 +25,11 @@ codex_yolo is a bash wrapper that runs OpenAI's Codex CLI in an isolated Docker 
 - Shell profile integration
 - File deployment
 
+**Changelog Synthesis** (`scripts/generate_changelog.sh`)
+- Explicit git ref range parsing
+- Commit subject normalization
+- Deterministic changelog section bucketing
+
 **Container** (`.codex_yolo.Dockerfile`, `.codex_yolo_entrypoint.sh`)
 - Node.js 20 base image
 - Codex CLI installation
@@ -77,6 +82,36 @@ Optional files downloaded separately:
 - Documentation
 
 **Rationale**: Ensures users get critical fixes while allowing graceful degradation for optional features. Backward compatible with v1.0.x auto-update logic.
+
+### Changelog Draft Generation
+
+The repository now includes a maintainer-only helper at
+`scripts/generate_changelog.sh` for synthesizing a draft changelog section from
+git history.
+
+**Why explicit refs are required**:
+- The repository does not currently have stable release tags to define implicit
+  changelog boundaries.
+- Requiring `--from <ref>` keeps the output deterministic and prevents the tool
+  from guessing which commits belong to a release.
+- `--to <ref>` defaults to `HEAD` so maintainers can draft a section for the
+  current branch without extra arguments.
+
+**Bucketing rules**:
+- `Added`: subjects with prefixes or keywords like `feat`, `add`, `implement`,
+  `support`, or `enable`
+- `Fixed`: subjects with prefixes or keywords like `fix`, `bug`, `regression`,
+  `repair`, or `resolve`
+- `Security`: subjects mentioning `security`, `vulnerability`, `cve`, `harden`,
+  or related auth/sanitization terms
+- `Changed`: fallback bucket for everything else, including docs, chores,
+  refactors, and version housekeeping
+
+**Normalization rules**:
+- Collapse repeated whitespace and remove trailing periods
+- Strip common conventional-commit prefixes before rendering
+- Preserve pull request references such as `(#18)` when present
+- Skip merge commit subjects to reduce duplicate release-note entries
 
 ## Code Organization
 
@@ -133,13 +168,18 @@ Location: `tests/integration_tests.sh`
 8. Configuration files
 9. Config file loading
 10. Config priority (3 locations)
+11. Changelog synthesizer syntax and execute permissions
+12. Deterministic changelog grouping over a temporary git fixture
+13. Clean empty-range output for explicit ref boundaries
 
 **Running Tests**:
 ```bash
 ./tests/integration_tests.sh
 ```
 
-Expected output: All tests pass (14/14)
+The changelog synthesizer tests create temporary git repositories, make
+representative commits, and assert that the generated markdown stays stable
+across `Added`, `Changed`, `Fixed`, and `Security` sections.
 
 ### Manual Testing Checklist
 
