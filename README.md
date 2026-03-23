@@ -22,11 +22,12 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 
 ### 🚀 Developer Experience
 - **Shell Completion**: Tab completion for bash and zsh (optional install)
+- **Host-side Debt Triage**: Run `codex_yolo debt` to classify `TODO`/`FIXME`/`HACK`/`XXX` markers without building the Docker image
 - **Comprehensive Examples**: See `EXAMPLES.md` for common use cases and best practices
 - **Documentation**: Full changelog in `CHANGELOG.md`
 
 ### 🔧 Engineering Quality
-- **Test Suite**: 14 integration tests ensure reliability
+- **Test Suite**: Expanded integration coverage ensures reliability across host-side and Docker-backed workflows
 - **CI/CD Pipeline**: Automated testing on every change
 - **Better Code Organization**: Modular, maintainable codebase
 
@@ -92,6 +93,30 @@ CODEX_VERBOSE=1 codex_yolo
 ```
 
 For more examples and use cases, see [EXAMPLES.md](EXAMPLES.md).
+
+## Technical Debt Report
+
+Scan the current repository for common debt markers without building or running
+the Docker container:
+
+```bash
+codex_yolo debt
+```
+
+You can also point the report at another directory:
+
+```bash
+codex_yolo debt path/to/repo
+```
+
+The report scans for `TODO`, `FIXME`, `HACK`, and `XXX`, classifies each
+finding as `bug-risk`, `maintainability`, `test-gap`, or
+`docs-config-infra`, assigns a deterministic priority score, and prints the
+results in descending priority order with file, line, and context.
+
+This command runs entirely on the host, like `codex_yolo diagnostics`, so it
+works even before Docker is installed. The scoring is intentionally heuristic:
+use it as a fast triage report, not as a substitute for code review.
 
 ## Login
 

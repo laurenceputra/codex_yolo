@@ -5,6 +5,20 @@ All notable changes to codex_yolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Technical Debt Report**: New `codex_yolo debt` host-side command for fast repository triage
+  - Scans `TODO`, `FIXME`, `HACK`, and `XXX` markers
+  - Classifies findings into bug-risk, maintainability, test-gap, and docs/config/infra buckets
+  - Assigns deterministic priority scores and sorts the report by severity
+  - Runs without building or starting the Docker container
+
+### Changed
+- Installer and auto-update flows now download `.codex_yolo_debt.sh`
+- Shell completions now expose `debt` as a first-class subcommand
+- Integration tests and CI syntax checks now cover the debt classifier helper
+
 ## [1.1.0] - 2026-01-31
 
 ### Added - Product Perspective

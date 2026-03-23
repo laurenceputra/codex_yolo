@@ -8,6 +8,7 @@ _codex_yolo() {
     'diagnostics:Run health checks and show diagnostic information'
     'doctor:Alias for diagnostics'
     'health:Alias for diagnostics'
+    'debt:Scan the current repository for technical debt markers'
     'version:Show version information'
     'login:Log in to OpenAI Codex'
   )

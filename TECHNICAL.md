@@ -20,6 +20,11 @@ codex_yolo is a bash wrapper that runs OpenAI's Codex CLI in an isolated Docker 
 - Configuration verification
 - Actionable recommendations
 
+**Debt Classifier** (`.codex_yolo_debt.sh`)
+- Host-side repository scanning for debt markers
+- Deterministic classification and scoring
+- Prioritized reporting without requiring Docker
+
 **Installation** (`install.sh`)
 - Platform detection (macOS, Linux, WSL)
 - Shell profile integration
@@ -69,6 +74,7 @@ Core files update automatically on every run (unless disabled):
 - `.codex_yolo.Dockerfile`
 - `.codex_yolo_entrypoint.sh`
 - `.codex_yolo_diagnostics.sh`
+- `.codex_yolo_debt.sh`
 - `VERSION`
 
 Optional files downloaded separately:
@@ -87,6 +93,7 @@ Optional files downloaded separately:
 .codex_yolo.Dockerfile         # Container image definition
 .codex_yolo_entrypoint.sh      # Container initialization
 .codex_yolo_diagnostics.sh     # Health check system
+.codex_yolo_debt.sh            # Host-side technical debt report
 .codex_yolo_completion.bash    # Bash tab completion
 .codex_yolo_completion.zsh     # Zsh tab completion
 .codex_yolo.conf.example       # Configuration template
@@ -116,6 +123,17 @@ if [[ "${remote_version}" != "${local_version}" ]]; then
 fi
 ```
 
+**Debt Classifier Heuristics** - Lightweight repository triage
+```bash
+# Classify by marker, path, and keywords, then sort by score
+codex_yolo debt
+```
+
+The classifier intentionally uses deterministic Bash heuristics instead of a
+parser or LLM. This keeps the command fast, portable, and safe to run on the
+host, but it also means the report is best used for prioritization rather than
+as a definitive audit.
+
 ## Testing Strategy
 
 ### Integration Tests
@@ -133,13 +151,16 @@ Location: `tests/integration_tests.sh`
 8. Configuration files
 9. Config file loading
 10. Config priority (3 locations)
+11. Host-side technical debt classification
+12. Clean repository debt scans
+13. Docker-free debt dispatch
 
 **Running Tests**:
 ```bash
 ./tests/integration_tests.sh
 ```
 
-Expected output: All tests pass (14/14)
+Expected output: all assertions pass, with Docker-specific checks skipped only when Docker is unavailable.
 
 ### Manual Testing Checklist
 
@@ -206,11 +227,11 @@ Current: v1.1.0
 ### Adding New Features
 
 1. **Update main script** (`.codex_yolo.sh`)
-   - Add feature implementation
-   - Update help text if applicable
-   - Maintain backward compatibility
+    - Add feature implementation
+    - Update help text if applicable
+    - Maintain backward compatibility
 
-2. **Add tests** (`tests/integration_tests.sh`)
+  2. **Add tests** (`tests/integration_tests.sh`)
    - Create new test case
    - Verify all tests pass
    - Update test count in summary
@@ -425,7 +446,7 @@ Container enables passwordless sudo:
 - Improved code organization
 - Integration test infrastructure
 
-**Impact**: +1,800 lines of code, +186% files, 14 automated tests
+**Impact**: +1,800 lines of code, +186% files, automated integration coverage across host and container workflows
 
 ### v1.0.2 (Previous)
 

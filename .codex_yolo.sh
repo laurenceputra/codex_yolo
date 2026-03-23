@@ -55,6 +55,9 @@ if [[ "${#}" -gt 0 ]]; then
     diagnostics|doctor|health)
       exec "${SCRIPT_DIR}/.codex_yolo_diagnostics.sh"
       ;;
+    debt)
+      exec "${SCRIPT_DIR}/.codex_yolo_debt.sh" "${@:2}"
+      ;;
     version)
       if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
         cat "${SCRIPT_DIR}/VERSION"
@@ -123,6 +126,7 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo.Dockerfile" -o "${temp_dir}/.codex_yolo.Dockerfile" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_entrypoint.sh" -o "${temp_dir}/.codex_yolo_entrypoint.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_diagnostics.sh" -o "${temp_dir}/.codex_yolo_diagnostics.sh" && \
+         curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.codex_yolo_debt.sh" -o "${temp_dir}/.codex_yolo_debt.sh" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/default-AGENTS.md" -o "${temp_dir}/default-AGENTS.md" && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/.dockerignore" -o "${temp_dir}/.dockerignore" 2>/dev/null && \
          curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/VERSION" -o "${temp_dir}/VERSION"; then
@@ -135,10 +139,12 @@ if [[ "${CODEX_SKIP_UPDATE_CHECK:-0}" != "1" ]]; then
         # Install core files
         chmod +x "${temp_dir}/.codex_yolo.sh"
         chmod +x "${temp_dir}/.codex_yolo_diagnostics.sh"
+        chmod +x "${temp_dir}/.codex_yolo_debt.sh"
         cp "${temp_dir}/.codex_yolo.sh" "${SCRIPT_DIR}/.codex_yolo.sh"
         cp "${temp_dir}/.codex_yolo.Dockerfile" "${SCRIPT_DIR}/.codex_yolo.Dockerfile"
         cp "${temp_dir}/.codex_yolo_entrypoint.sh" "${SCRIPT_DIR}/.codex_yolo_entrypoint.sh"
         cp "${temp_dir}/.codex_yolo_diagnostics.sh" "${SCRIPT_DIR}/.codex_yolo_diagnostics.sh"
+        cp "${temp_dir}/.codex_yolo_debt.sh" "${SCRIPT_DIR}/.codex_yolo_debt.sh"
         cp "${temp_dir}/default-AGENTS.md" "${SCRIPT_DIR}/default-AGENTS.md"
         cp "${temp_dir}/.dockerignore" "${SCRIPT_DIR}/.dockerignore" 2>/dev/null || true
         cp "${temp_dir}/VERSION" "${SCRIPT_DIR}/VERSION"

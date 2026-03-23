@@ -24,6 +24,7 @@ jobs:
         bash -n .codex_yolo.sh
         bash -n .codex_yolo_entrypoint.sh
         bash -n .codex_yolo_diagnostics.sh
+        bash -n .codex_yolo_debt.sh
         bash -n install.sh
     
     - name: Run integration tests
@@ -88,6 +89,7 @@ jobs:
         # Check that shell scripts are executable
         test -x .codex_yolo.sh || (echo ".codex_yolo.sh not executable" && exit 1)
         test -x .codex_yolo_diagnostics.sh || (echo ".codex_yolo_diagnostics.sh not executable" && exit 1)
+        test -x .codex_yolo_debt.sh || (echo ".codex_yolo_debt.sh not executable" && exit 1)
         test -x install.sh || (echo "install.sh not executable" && exit 1)
         test -x tests/integration_tests.sh || (echo "integration_tests.sh not executable" && exit 1)
     

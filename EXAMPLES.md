@@ -136,6 +136,27 @@ codex_yolo version
 codex_yolo --version
 ```
 
+### Technical Debt Triage
+```bash
+# Scan the current repository for technical debt markers
+codex_yolo debt
+
+# Scan a different checkout or subdirectory
+codex_yolo debt ../another-repo
+```
+
+The debt report scans for `TODO`, `FIXME`, `HACK`, and `XXX`, then classifies
+each finding into one of four buckets:
+
+- `bug-risk`
+- `maintainability`
+- `test-gap`
+- `docs-config-infra`
+
+Scores are deterministic and based on marker type, file path, and keywords in
+the surrounding text. Treat the output as prioritized triage rather than a
+complete architectural assessment.
+
 ### Common Issues
 
 #### "Docker daemon not running"
@@ -276,5 +297,6 @@ CODEX_BASE_IMAGE=node:18-slim codex_yolo
 
 - Run `codex_yolo --help` for Codex CLI help
 - Run `codex_yolo diagnostics` for system health check  
+- Run `codex_yolo debt` for a host-side technical debt report
 - Visit: https://github.com/laurenceputra/codex_yolo
 - Report issues: https://github.com/laurenceputra/codex_yolo/issues
