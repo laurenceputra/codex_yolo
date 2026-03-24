@@ -39,6 +39,52 @@ log_info() {
   echo -e "  $*"
 }
 
+capture_command() {
+  local __output_var="$1"
+  local __status_var="$2"
+  shift 2
+
+  local captured_output
+  local captured_status
+  if captured_output=$("$@" 2>&1); then
+    captured_status=0
+  else
+    captured_status=$?
+  fi
+
+  printf -v "${__output_var}" '%s' "${captured_output}"
+  printf -v "${__status_var}" '%s' "${captured_status}"
+}
+
+create_fake_docker() {
+  local fake_bin="$1"
+
+  cat > "${fake_bin}/docker" <<'TESTEOF'
+#!/bin/bash
+case "${1:-}" in
+  info)
+    exit 0
+    ;;
+  buildx)
+    if [[ "${2:-}" == "version" ]]; then
+      exit 0
+    fi
+    ;;
+  image)
+    if [[ "${2:-}" == "inspect" ]]; then
+      exit 1
+    fi
+    ;;
+  build|run)
+    exit 0
+    ;;
+esac
+exit 0
+TESTEOF
+
+  chmod +x "${fake_bin}/docker"
+}
+
 echo "=== codex_yolo Test Suite ==="
 echo ""
 
@@ -382,6 +428,197 @@ TESTEOF
   fi
 else
   log_skip "Docker not available, skipping --gh flag test"
+fi
+
+# Test 21: Reject relative CODEX_YOLO_HOME
+log_test "Reject relative CODEX_YOLO_HOME"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+
+cleanup_test_21() {
+  rm -rf "${fake_bin}"
+  export PATH="${original_path}"
+  unset CODEX_SKIP_UPDATE_CHECK
+  unset CODEX_SKIP_VERSION_CHECK
+  unset CODEX_YOLO_HOME
+}
+trap cleanup_test_21 EXIT
+
+create_fake_docker "${fake_bin}"
+export PATH="${fake_bin}:${PATH}"
+export CODEX_SKIP_UPDATE_CHECK=1
+export CODEX_SKIP_VERSION_CHECK=1
+export CODEX_YOLO_HOME="relative/home"
+
+capture_command output status "${CODEX_YOLO_SH}"
+
+cleanup_test_21
+trap - EXIT
+
+if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q "CODEX_YOLO_HOME must be an absolute path"; then
+  log_pass "Relative CODEX_YOLO_HOME is rejected before running Docker"
+else
+  log_fail "Relative CODEX_YOLO_HOME was not rejected as expected"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 22: Reject relative CODEX_YOLO_WORKDIR
+log_test "Reject relative CODEX_YOLO_WORKDIR"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+
+cleanup_test_22() {
+  rm -rf "${fake_bin}"
+  export PATH="${original_path}"
+  unset CODEX_SKIP_UPDATE_CHECK
+  unset CODEX_SKIP_VERSION_CHECK
+  unset CODEX_YOLO_WORKDIR
+}
+trap cleanup_test_22 EXIT
+
+create_fake_docker "${fake_bin}"
+export PATH="${fake_bin}:${PATH}"
+export CODEX_SKIP_UPDATE_CHECK=1
+export CODEX_SKIP_VERSION_CHECK=1
+export CODEX_YOLO_WORKDIR="workspace"
+
+capture_command output status "${CODEX_YOLO_SH}"
+
+cleanup_test_22
+trap - EXIT
+
+if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q "CODEX_YOLO_WORKDIR must be an absolute path"; then
+  log_pass "Relative CODEX_YOLO_WORKDIR is rejected before running Docker"
+else
+  log_fail "Relative CODEX_YOLO_WORKDIR was not rejected as expected"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 23: --gh requires host gh binary
+log_test "--gh requires host gh binary"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+host_bash="$(command -v bash)"
+
+cleanup_test_23() {
+  export PATH="${original_path}"
+  rm -rf "${fake_bin}"
+  unset CODEX_DRY_RUN
+  unset CODEX_SKIP_UPDATE_CHECK
+  unset CODEX_SKIP_VERSION_CHECK
+}
+trap cleanup_test_23 EXIT
+
+create_fake_docker "${fake_bin}"
+for required_tool in dirname id tr uname; do
+  ln -s "$(command -v "${required_tool}")" "${fake_bin}/${required_tool}"
+done
+export PATH="${fake_bin}"
+export CODEX_DRY_RUN=1
+export CODEX_SKIP_UPDATE_CHECK=1
+export CODEX_SKIP_VERSION_CHECK=1
+
+capture_command output status "${host_bash}" "${CODEX_YOLO_SH}" --gh
+
+cleanup_test_23
+trap - EXIT
+
+if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q -- "--gh requires GitHub CLI (gh) installed on the host" && echo "${output}" | grep -q "gh auth login"; then
+  log_pass "--gh fails fast when gh is unavailable on the host"
+else
+  log_fail "--gh did not report the missing host gh prerequisite"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 24: --gh requires authenticated host gh session
+log_test "--gh requires authenticated host gh session"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+
+cleanup_test_24() {
+  rm -rf "${fake_bin}"
+  export PATH="${original_path}"
+  unset CODEX_DRY_RUN
+  unset CODEX_SKIP_UPDATE_CHECK
+  unset CODEX_SKIP_VERSION_CHECK
+}
+trap cleanup_test_24 EXIT
+
+create_fake_docker "${fake_bin}"
+cat > "${fake_bin}/gh" <<'TESTEOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "auth" ]] && [[ "${2:-}" == "status" ]]; then
+  exit 1
+fi
+exit 0
+TESTEOF
+chmod +x "${fake_bin}/gh"
+
+export PATH="${fake_bin}:${PATH}"
+export CODEX_DRY_RUN=1
+export CODEX_SKIP_UPDATE_CHECK=1
+export CODEX_SKIP_VERSION_CHECK=1
+
+capture_command output status "${CODEX_YOLO_SH}" --gh
+
+cleanup_test_24
+trap - EXIT
+
+if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q -- "--gh requires host GitHub authentication" && echo "${output}" | grep -q "gh auth login"; then
+  log_pass "--gh fails fast when host gh auth is missing"
+else
+  log_fail "--gh did not report the missing host gh auth prerequisite"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 25: --gh requires host Copilot state directory
+log_test "--gh requires host ~/.copilot state"
+fake_bin=$(mktemp -d)
+test_home=$(mktemp -d)
+original_path="${PATH}"
+original_home="${HOME}"
+
+cleanup_test_25() {
+  rm -rf "${fake_bin}" "${test_home}"
+  export PATH="${original_path}"
+  export HOME="${original_home}"
+  unset CODEX_DRY_RUN
+  unset CODEX_SKIP_UPDATE_CHECK
+  unset CODEX_SKIP_VERSION_CHECK
+}
+trap cleanup_test_25 EXIT
+
+create_fake_docker "${fake_bin}"
+cat > "${fake_bin}/gh" <<'TESTEOF'
+#!/usr/bin/env bash
+if [[ "${1:-}" == "auth" ]] && [[ "${2:-}" == "status" ]]; then
+  exit 0
+fi
+exit 0
+TESTEOF
+chmod +x "${fake_bin}/gh"
+
+export PATH="${fake_bin}:${PATH}"
+export HOME="${test_home}"
+export CODEX_DRY_RUN=1
+export CODEX_SKIP_UPDATE_CHECK=1
+export CODEX_SKIP_VERSION_CHECK=1
+
+capture_command output status "${CODEX_YOLO_SH}" --gh
+
+cleanup_test_25
+trap - EXIT
+
+if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q -- "--gh enabled but .*\\.copilot does not exist or is not a directory" && echo "${output}" | grep -q "Ensure host Copilot data exists"; then
+  log_pass "--gh fails fast when host Copilot state is missing"
+else
+  log_fail "--gh did not report the missing ~/.copilot prerequisite"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
 fi
 
 # Summary
