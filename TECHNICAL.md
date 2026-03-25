@@ -10,6 +10,7 @@ codex_yolo is a bash wrapper that runs OpenAI's Codex CLI in an isolated Docker 
 
 **Main Script** (`.codex_yolo.sh`)
 - Configuration loading with cascading precedence
+- Host-side cost estimation (`codex_yolo costs`)
 - Auto-update mechanism
 - Docker image management
 - Container orchestration
@@ -78,6 +79,32 @@ Optional files downloaded separately:
 
 **Rationale**: Ensures users get critical fixes while allowing graceful degradation for optional features. Backward compatible with v1.0.x auto-update logic.
 
+### Cost Estimator Design
+
+`codex_yolo costs` runs entirely on the host side before Docker prerequisite
+checks. This keeps the feature available even when Docker is missing or the
+daemon is stopped.
+
+**Estimator contract**:
+- `image_storage`: one month of image storage, derived from `docker image inspect`
+  `.Size` metadata when available, otherwise `CODEX_COST_STORAGE_GB`
+- `image_build`: `CODEX_COST_BUILD_MINUTES * CODEX_COST_BUILD_RATE_PER_MINUTE`
+- `container_runtime`: `CODEX_COST_RUNTIME_HOURS * CODEX_COST_RUNTIME_RATE_PER_HOUR`
+- `total`: the sum of those three components for a single scenario
+
+**Validation**:
+- All `CODEX_COST_*` numeric inputs must be non-negative numbers
+- Invalid values fail fast with a clear error
+- Missing Docker or missing image metadata falls back deterministically to
+  `CODEX_COST_STORAGE_GB`, then `0`
+
+**Output modes**:
+- Human-readable table by default
+- `--json` for scripting and automation
+
+**Important limitation**: this is an estimate only. The command does not call
+any provider billing APIs and does not attempt to model every possible cost.
+
 ## Code Organization
 
 ### File Structure
@@ -138,13 +165,18 @@ Location: `tests/integration_tests.sh`
 13. GitHub mount dry-run wiring
 14. Container path validation (`CODEX_YOLO_HOME`, `CODEX_YOLO_WORKDIR`)
 15. `--gh` prerequisite failures (missing `gh`, missing auth, missing `~/.copilot`)
+16. Costs command text breakdown
+17. Costs command JSON output
+18. Costs numeric validation failures
+19. Costs config/environment precedence
+20. Costs fallback behavior without Docker metadata
 
 **Running Tests**:
 ```bash
 ./tests/integration_tests.sh
 ```
 
-Expected output: 25 total tests. On hosts without Docker, the Docker-dependent smoke tests are skipped while the host-side validation tests still run.
+Expected output: 30 total tests. On hosts without Docker, the Docker-dependent smoke tests are skipped while the host-side validation tests still run, including the host-side cost estimator coverage.
 
 ### Manual Testing Checklist
 

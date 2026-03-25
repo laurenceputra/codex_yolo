@@ -3,6 +3,37 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Preserve environment overrides so config files stay lower precedence.
+CONFIG_OVERRIDE_VARS=(
+  CODEX_BASE_IMAGE
+  CODEX_YOLO_IMAGE
+  CODEX_YOLO_HOME
+  CODEX_YOLO_WORKDIR
+  CODEX_YOLO_CLEANUP
+  CODEX_YOLO_REPO
+  CODEX_YOLO_BRANCH
+  CODEX_SKIP_UPDATE_CHECK
+  CODEX_SKIP_VERSION_CHECK
+  CODEX_BUILD_NO_CACHE
+  CODEX_BUILD_PULL
+  CODEX_DRY_RUN
+  CODEX_VERBOSE
+  CODEX_COST_STORAGE_RATE_PER_GB_MONTH
+  CODEX_COST_BUILD_RATE_PER_MINUTE
+  CODEX_COST_RUNTIME_RATE_PER_HOUR
+  CODEX_COST_STORAGE_GB
+  CODEX_COST_BUILD_MINUTES
+  CODEX_COST_RUNTIME_HOURS
+)
+for config_var in "${CONFIG_OVERRIDE_VARS[@]}"; do
+  backup_var="__CODEX_ENV_OVERRIDE_${config_var}"
+  if [[ "${!config_var+x}" == "x" ]]; then
+    printf -v "${backup_var}" '%s' "${!config_var}"
+  else
+    printf -v "${backup_var}" '%s' "__CODEX_YOLO_UNSET__"
+  fi
+done
+
 # Load configuration file if it exists
 # Priority: SCRIPT_DIR/config < ~/.codex_yolo/config < env vars
 if [[ -f "${SCRIPT_DIR}/config" ]]; then
@@ -13,6 +44,13 @@ if [[ -f "${HOME}/.codex_yolo/config" ]]; then
   # shellcheck source=/dev/null
   source "${HOME}/.codex_yolo/config"
 fi
+for config_var in "${CONFIG_OVERRIDE_VARS[@]}"; do
+  backup_var="__CODEX_ENV_OVERRIDE_${config_var}"
+  if [[ "${!backup_var}" != "__CODEX_YOLO_UNSET__" ]]; then
+    printf -v "${config_var}" '%s' "${!backup_var}"
+    export "${config_var}"
+  fi
+done
 
 IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 DOCKERFILE="${SCRIPT_DIR}/.codex_yolo.Dockerfile"
@@ -49,6 +87,259 @@ log_error() {
   echo "Error: $*" >&2
 }
 
+show_costs_help() {
+  cat <<EOF
+Usage: codex_yolo costs [--json] [--image IMAGE] [--storage-gb GB] [--build-minutes MINUTES] [--runtime-hours HOURS]
+
+Estimate per-component costs for:
+  - image_storage     (one month of local image storage)
+  - image_build       (one image build duration)
+  - container_runtime (one runtime window)
+
+This command is a host-side estimate only. It uses CODEX_COST_* values plus
+local Docker image metadata when available. It does not query live billing APIs.
+
+Configuration:
+  CODEX_COST_STORAGE_RATE_PER_GB_MONTH
+  CODEX_COST_BUILD_RATE_PER_MINUTE
+  CODEX_COST_RUNTIME_RATE_PER_HOUR
+  CODEX_COST_STORAGE_GB
+  CODEX_COST_BUILD_MINUTES
+  CODEX_COST_RUNTIME_HOURS
+
+Flags:
+  --json               Emit machine-readable JSON
+  --image IMAGE        Inspect a different local Docker image
+  --storage-gb GB      Override image size when Docker metadata is unavailable
+  --build-minutes N    Override build duration
+  --runtime-hours N    Override runtime duration
+  --help               Show this help text
+EOF
+}
+
+require_cost_flag_value() {
+  local flag_name="$1"
+  local flag_value="${2:-}"
+
+  if [[ -z "${flag_value}" || "${flag_value}" == --* ]]; then
+    log_error "${flag_name} requires a value"
+    exit 1
+  fi
+}
+
+validate_cost_number() {
+  local setting_name="$1"
+  local setting_value="$2"
+
+  if [[ ! "${setting_value}" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+    log_error "${setting_name} must be a non-negative number, got '${setting_value}'"
+    exit 1
+  fi
+}
+
+normalize_cost_number() {
+  awk -v value="$1" 'BEGIN { printf "%.6f", value + 0 }'
+}
+
+multiply_cost_numbers() {
+  awk -v left="$1" -v right="$2" 'BEGIN { printf "%.6f", left * right }'
+}
+
+bytes_to_cost_gb() {
+  awk -v value="$1" 'BEGIN { printf "%.6f", value / 1000000000 }'
+}
+
+json_escape() {
+  local escaped="${1//\\/\\\\}"
+  escaped="${escaped//\"/\\\"}"
+  escaped="${escaped//$'\n'/\\n}"
+  escaped="${escaped//$'\r'/\\r}"
+  escaped="${escaped//$'\t'/\\t}"
+  printf '%s' "${escaped}"
+}
+
+run_costs_command() {
+  local json_mode=0
+  local image_name="${IMAGE}"
+  local cli_storage_gb=""
+  local cli_build_minutes=""
+  local cli_runtime_hours=""
+
+  shift
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --json)
+        json_mode=1
+        ;;
+      --image)
+        require_cost_flag_value "$1" "${2:-}"
+        image_name="$2"
+        shift
+        ;;
+      --storage-gb)
+        require_cost_flag_value "$1" "${2:-}"
+        cli_storage_gb="$2"
+        shift
+        ;;
+      --build-minutes)
+        require_cost_flag_value "$1" "${2:-}"
+        cli_build_minutes="$2"
+        shift
+        ;;
+      --runtime-hours)
+        require_cost_flag_value "$1" "${2:-}"
+        cli_runtime_hours="$2"
+        shift
+        ;;
+      --help|-h)
+        show_costs_help
+        exit 0
+        ;;
+      *)
+        log_error "Unknown costs option: $1"
+        log_info "Run 'codex_yolo costs --help' for usage"
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
+  local storage_rate="${CODEX_COST_STORAGE_RATE_PER_GB_MONTH:-0}"
+  local build_rate="${CODEX_COST_BUILD_RATE_PER_MINUTE:-0}"
+  local runtime_rate="${CODEX_COST_RUNTIME_RATE_PER_HOUR:-0}"
+  local build_minutes="${CODEX_COST_BUILD_MINUTES:-0}"
+  local runtime_hours="${CODEX_COST_RUNTIME_HOURS:-0}"
+  local configured_storage_gb="${CODEX_COST_STORAGE_GB:-}"
+
+  if [[ -n "${cli_storage_gb}" ]]; then
+    configured_storage_gb="${cli_storage_gb}"
+  fi
+  if [[ -n "${cli_build_minutes}" ]]; then
+    build_minutes="${cli_build_minutes}"
+  fi
+  if [[ -n "${cli_runtime_hours}" ]]; then
+    runtime_hours="${cli_runtime_hours}"
+  fi
+
+  validate_cost_number "CODEX_COST_STORAGE_RATE_PER_GB_MONTH" "${storage_rate}"
+  validate_cost_number "CODEX_COST_BUILD_RATE_PER_MINUTE" "${build_rate}"
+  validate_cost_number "CODEX_COST_RUNTIME_RATE_PER_HOUR" "${runtime_rate}"
+  validate_cost_number "CODEX_COST_BUILD_MINUTES" "${build_minutes}"
+  validate_cost_number "CODEX_COST_RUNTIME_HOURS" "${runtime_hours}"
+  if [[ -n "${configured_storage_gb}" ]]; then
+    validate_cost_number "CODEX_COST_STORAGE_GB" "${configured_storage_gb}"
+  fi
+
+  local storage_gb=""
+  local storage_quantity_source=""
+  local build_quantity_source="configured_or_default"
+  local runtime_quantity_source="configured_or_default"
+  local docker_size_bytes=""
+  local storage_notes=()
+
+  if [[ -n "${cli_build_minutes}" ]]; then
+    build_quantity_source="cli_override"
+  fi
+  if [[ -n "${cli_runtime_hours}" ]]; then
+    runtime_quantity_source="cli_override"
+  fi
+
+  if command -v docker >/dev/null 2>&1; then
+    docker_size_bytes="$(docker image inspect --format '{{.Size}}' "${image_name}" 2>/dev/null || true)"
+  fi
+
+  if [[ "${docker_size_bytes}" =~ ^[0-9]+$ ]]; then
+    storage_gb="$(bytes_to_cost_gb "${docker_size_bytes}")"
+    storage_quantity_source="docker_image_inspect"
+  elif [[ -n "${configured_storage_gb}" ]]; then
+    storage_gb="$(normalize_cost_number "${configured_storage_gb}")"
+    if [[ -n "${cli_storage_gb}" ]]; then
+      storage_quantity_source="cli_override"
+    else
+      storage_quantity_source="configured_storage_gb"
+    fi
+    storage_notes+=("Docker image metadata was unavailable for '${image_name}', so storage used the configured fallback size.")
+  else
+    storage_gb="0.000000"
+    storage_quantity_source="default_zero"
+    storage_notes+=("Docker image metadata was unavailable for '${image_name}', so storage defaulted to 0. Set CODEX_COST_STORAGE_GB or use --storage-gb to override it.")
+  fi
+
+  local normalized_storage_rate
+  local normalized_build_rate
+  local normalized_runtime_rate
+  local normalized_build_minutes
+  local normalized_runtime_hours
+  normalized_storage_rate="$(normalize_cost_number "${storage_rate}")"
+  normalized_build_rate="$(normalize_cost_number "${build_rate}")"
+  normalized_runtime_rate="$(normalize_cost_number "${runtime_rate}")"
+  normalized_build_minutes="$(normalize_cost_number "${build_minutes}")"
+  normalized_runtime_hours="$(normalize_cost_number "${runtime_hours}")"
+
+  local image_storage_cost
+  local image_build_cost
+  local container_runtime_cost
+  local total_cost
+  image_storage_cost="$(multiply_cost_numbers "${storage_gb}" "${normalized_storage_rate}")"
+  image_build_cost="$(multiply_cost_numbers "${normalized_build_minutes}" "${normalized_build_rate}")"
+  container_runtime_cost="$(multiply_cost_numbers "${normalized_runtime_hours}" "${normalized_runtime_rate}")"
+  total_cost="$(awk -v storage="${image_storage_cost}" -v build="${image_build_cost}" -v runtime="${container_runtime_cost}" 'BEGIN { printf "%.6f", storage + build + runtime }')"
+
+  local estimate_notes=(
+    "Estimate only. Uses configured CODEX_COST_* inputs and optional local Docker metadata; it does not query live billing data."
+    "The total combines one month of image storage, one image build, and one runtime window."
+  )
+  if [[ "${#storage_notes[@]}" -gt 0 ]]; then
+    estimate_notes+=("${storage_notes[@]}")
+  fi
+
+  if [[ "${json_mode}" == "1" ]]; then
+    printf '{'
+    printf '"estimate_only":true,'
+    printf '"image":"%s",' "$(json_escape "${image_name}")"
+    printf '"components":{'
+    printf '"image_storage":{"size_gb":%s,"rate_per_gb_month":%s,"estimated_cost":%s,"quantity_source":"%s"},' \
+      "${storage_gb}" "${normalized_storage_rate}" "${image_storage_cost}" "$(json_escape "${storage_quantity_source}")"
+    printf '"image_build":{"duration_minutes":%s,"rate_per_minute":%s,"estimated_cost":%s,"quantity_source":"%s"},' \
+      "${normalized_build_minutes}" "${normalized_build_rate}" "${image_build_cost}" "$(json_escape "${build_quantity_source}")"
+    printf '"container_runtime":{"duration_hours":%s,"rate_per_hour":%s,"estimated_cost":%s,"quantity_source":"%s"}' \
+      "${normalized_runtime_hours}" "${normalized_runtime_rate}" "${container_runtime_cost}" "$(json_escape "${runtime_quantity_source}")"
+    printf '},'
+    printf '"total":%s,' "${total_cost}"
+    printf '"notes":['
+    for note_index in "${!estimate_notes[@]}"; do
+      if [[ "${note_index}" -gt 0 ]]; then
+        printf ','
+      fi
+      printf '"%s"' "$(json_escape "${estimate_notes[${note_index}]}")"
+    done
+    printf ']'
+    printf '}\n'
+    exit 0
+  fi
+
+  echo "Cost attribution estimate for image '${image_name}'"
+  echo "Estimate only: uses configured CODEX_COST_* inputs and optional local Docker metadata."
+  echo "This is not live billing data."
+  echo ""
+  printf '%-18s %-18s %-22s %-14s %s\n' "Component" "Quantity" "Rate" "Estimate" "Source"
+  printf '%-18s %-18s %-22s %-14s %s\n' "------------------" "------------------" "----------------------" "--------------" "---------------------"
+  printf '%-18s %-18s %-22s %-14s %s\n' "image_storage" "${storage_gb} GB" "\$${normalized_storage_rate}/GB-month" "\$${image_storage_cost}" "${storage_quantity_source}"
+  printf '%-18s %-18s %-22s %-14s %s\n' "image_build" "${normalized_build_minutes} min" "\$${normalized_build_rate}/min" "\$${image_build_cost}" "${build_quantity_source}"
+  printf '%-18s %-18s %-22s %-14s %s\n' "container_runtime" "${normalized_runtime_hours} hr" "\$${normalized_runtime_rate}/hr" "\$${container_runtime_cost}" "${runtime_quantity_source}"
+  printf '%-18s %-18s %-22s %-14s %s\n' "total" "" "" "\$${total_cost}" "scenario_total"
+
+  if [[ "${#estimate_notes[@]}" -gt 0 ]]; then
+    echo ""
+    echo "Notes:"
+    for note in "${estimate_notes[@]}"; do
+      echo "- ${note}"
+    done
+  fi
+
+  exit 0
+}
+
 # Handle special commands before Docker checks
 if [[ "${#}" -gt 0 ]]; then
   case "${1}" in
@@ -70,6 +361,9 @@ if [[ "${#}" -gt 0 ]]; then
         echo "codex_yolo version unknown"
       fi
       exit 0
+      ;;
+    costs)
+      run_costs_command "$@"
       ;;
   esac
 fi

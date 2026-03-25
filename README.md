@@ -19,6 +19,7 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 - **Persistent Config**: Set preferences in `~/.codex_yolo/config` (or `${INSTALL_DIR}/config`)
 - **Example Template**: See `.codex_yolo.conf.example` in your install directory
 - **Version Commands**: Check your version with `codex_yolo version` or `--version`
+- **Cost Attribution Estimator**: Run `codex_yolo costs` to estimate image storage, image build, and container runtime costs from local inputs
 
 ### 🚀 Developer Experience
 - **Shell Completion**: Tab completion for bash and zsh (optional install)
@@ -83,6 +84,13 @@ Show version:
 codex_yolo --version
 ```
 
+Estimate resource costs without launching Codex:
+
+```bash
+codex_yolo costs
+codex_yolo costs --json
+```
+
 Enable verbose output:
 
 ```bash
@@ -92,6 +100,49 @@ CODEX_VERBOSE=1 codex_yolo
 ```
 
 For more examples and use cases, see [EXAMPLES.md](EXAMPLES.md).
+
+## Cost Estimates
+
+`codex_yolo costs` is a host-side estimator for three components:
+
+- `image_storage`: one month of storage for the selected Docker image
+- `image_build`: one image build duration
+- `container_runtime`: one container runtime window
+
+The command is intentionally conservative in scope: it combines user-supplied
+`CODEX_COST_*` rates and durations with local `docker image inspect` size
+metadata when available. It does **not** query cloud billing APIs or any live
+provider pricing data.
+
+Example:
+
+```bash
+CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.02 \
+CODEX_COST_BUILD_RATE_PER_MINUTE=0.15 \
+CODEX_COST_RUNTIME_RATE_PER_HOUR=0.05 \
+CODEX_COST_BUILD_MINUTES=10 \
+CODEX_COST_RUNTIME_HOURS=4 \
+codex_yolo costs
+```
+
+Use `--json` for automation:
+
+```bash
+codex_yolo costs --json
+```
+
+Useful overrides:
+
+```bash
+# Estimate a different local image
+codex_yolo costs --image my-custom-image:latest
+
+# Provide a fallback image size when Docker metadata is unavailable
+codex_yolo costs --storage-gb 1.5
+
+# Override one-off scenario durations
+codex_yolo costs --build-minutes 12 --runtime-hours 8
+```
 
 ## Login
 
@@ -201,10 +252,18 @@ Available options:
 - `CODEX_SKIP_VERSION_CHECK=1` to skip npm version checks and reuse an existing image; requires that the image already exists (for example from a previous run), otherwise the script may fail instead of building it
 - `CODEX_DRY_RUN=1` to print the computed docker build/run commands without executing
 - `CODEX_VERBOSE=1` to enable verbose logging
+- `CODEX_COST_STORAGE_RATE_PER_GB_MONTH` for the image storage rate used by `codex_yolo costs`
+- `CODEX_COST_BUILD_RATE_PER_MINUTE` for the image build rate used by `codex_yolo costs`
+- `CODEX_COST_RUNTIME_RATE_PER_HOUR` for the runtime rate used by `codex_yolo costs`
+- `CODEX_COST_STORAGE_GB` as a fallback image size when Docker metadata is unavailable
+- `CODEX_COST_BUILD_MINUTES` for the build duration scenario used by `codex_yolo costs`
+- `CODEX_COST_RUNTIME_HOURS` for the runtime duration scenario used by `codex_yolo costs`
 - `--pull` flag to force a pull when running `./.codex_yolo.sh`
 - `--verbose` or `-v` flag to enable verbose output
 - `--mount-ssh` flag to enable SSH key mounting for git push access; see security warning above
 - `--gh` flag to mount host `~/.copilot` and host `~/.config/gh` (if present) after validating host `gh` auth
+- `codex_yolo costs --json` for machine-readable estimator output
+- `codex_yolo costs --image`, `--storage-gb`, `--build-minutes`, and `--runtime-hours` for one-off estimator overrides
 - Each run checks npm for the latest `@openai/codex` version (unless skipped)
   and rebuilds the image if it is out of date.
 - Each run checks for codex_yolo script updates (unless skipped with `CODEX_SKIP_UPDATE_CHECK=1`)

@@ -2,13 +2,14 @@
 # Source this file or add it to your bash completion directory
 
 _codex_yolo_complete() {
-  local cur prev opts
+  local cur prev opts costs_opts
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # codex_yolo specific commands and flags
-  local codex_yolo_opts="diagnostics doctor health version --version --verbose -v --pull --gh --help"
+  local codex_yolo_opts="diagnostics doctor health version costs --version --verbose -v --pull --gh --help"
+  local costs_opts="--json --image --storage-gb --build-minutes --runtime-hours --help"
   
   # Common codex CLI commands (pass-through)
   local codex_opts="login --help --yolo --search --device-auth"
@@ -19,6 +20,18 @@ _codex_yolo_complete() {
   # If we're completing the first argument after codex_yolo
   if [[ ${COMP_CWORD} -eq 1 ]]; then
     COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+    return 0
+  fi
+
+  if [[ "${COMP_WORDS[1]}" == "costs" ]]; then
+    case "${prev}" in
+      --image|--storage-gb|--build-minutes|--runtime-hours)
+        COMPREPLY=()
+        return 0
+        ;;
+    esac
+
+    COMPREPLY=( $(compgen -W "${costs_opts}" -- "${cur}") )
     return 0
   fi
 

@@ -78,6 +78,34 @@ codex_yolo --verbose
 CODEX_VERBOSE=1 codex_yolo
 ```
 
+### Estimate Resource Costs
+Estimate one month of image storage plus one build and one runtime window:
+```bash
+CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.02 \
+CODEX_COST_BUILD_RATE_PER_MINUTE=0.15 \
+CODEX_COST_RUNTIME_RATE_PER_HOUR=0.05 \
+CODEX_COST_BUILD_MINUTES=10 \
+CODEX_COST_RUNTIME_HOURS=4 \
+codex_yolo costs
+```
+
+Get the same estimate as JSON for scripts:
+```bash
+codex_yolo costs --json
+```
+
+Override the inspected image or provide a fallback size when Docker metadata is unavailable:
+```bash
+codex_yolo costs --image codex-cli-yolo:local
+codex_yolo costs --storage-gb 1.5
+codex_yolo costs --build-minutes 12 --runtime-hours 8
+```
+
+Notes:
+- Estimates are based on your configured `CODEX_COST_*` values
+- `image_storage` uses local `docker image inspect` size metadata when available
+- No live billing API calls are made
+
 ### Force Update/Rebuild
 ```bash
 # Force pull base image and rebuild
@@ -253,6 +281,14 @@ CODEX_BUILD_NO_CACHE=0
 CODEX_BUILD_PULL=0
 CODEX_DRY_RUN=0
 CODEX_VERBOSE=0
+
+# Cost estimator inputs
+CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.00
+CODEX_COST_BUILD_RATE_PER_MINUTE=0.00
+CODEX_COST_RUNTIME_RATE_PER_HOUR=0.00
+CODEX_COST_STORAGE_GB=0.00
+CODEX_COST_BUILD_MINUTES=0
+CODEX_COST_RUNTIME_HOURS=0
 ```
 
 ## Tips and Tricks

@@ -9,6 +9,7 @@ _codex_yolo() {
     'doctor:Alias for diagnostics'
     'health:Alias for diagnostics'
     'version:Show version information'
+    'costs:Estimate per-component storage, build, and runtime costs'
     'login:Log in to OpenAI Codex'
   )
 
@@ -42,6 +43,15 @@ _codex_yolo() {
       case $line[1] in
         login)
           _arguments '--device-auth[Use device authentication]'
+          ;;
+        costs)
+          _arguments \
+            '--json[Emit machine-readable JSON output]' \
+            '--image[Inspect a different local Docker image]:image name:' \
+            '--storage-gb[Fallback image size in decimal GB when metadata is unavailable]:gigabytes:' \
+            '--build-minutes[Override build duration in minutes]:minutes:' \
+            '--runtime-hours[Override runtime duration in hours]:hours:' \
+            '--help[Show costs command help]'
           ;;
       esac
       ;;

@@ -72,6 +72,10 @@ case "${1:-}" in
     ;;
   image)
     if [[ "${2:-}" == "inspect" ]]; then
+      if [[ -n "${FAKE_DOCKER_IMAGE_SIZE_BYTES:-}" ]]; then
+        printf '%s\n' "${FAKE_DOCKER_IMAGE_SIZE_BYTES}"
+        exit 0
+      fi
       exit 1
     fi
     ;;
@@ -617,6 +621,207 @@ if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q -- "--gh enabled but .*
   log_pass "--gh fails fast when host Copilot state is missing"
 else
   log_fail "--gh did not report the missing ~/.copilot prerequisite"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 26: costs command text output with Docker image metadata
+log_test "Costs command reports text breakdown"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+
+cleanup_test_26() {
+  rm -rf "${fake_bin}"
+  export PATH="${original_path}"
+  unset FAKE_DOCKER_IMAGE_SIZE_BYTES
+  unset CODEX_COST_STORAGE_RATE_PER_GB_MONTH
+  unset CODEX_COST_BUILD_RATE_PER_MINUTE
+  unset CODEX_COST_RUNTIME_RATE_PER_HOUR
+  unset CODEX_COST_BUILD_MINUTES
+  unset CODEX_COST_RUNTIME_HOURS
+  unset CODEX_COST_STORAGE_GB
+}
+trap cleanup_test_26 EXIT
+
+create_fake_docker "${fake_bin}"
+export PATH="${fake_bin}:${PATH}"
+export FAKE_DOCKER_IMAGE_SIZE_BYTES=2500000000
+export CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.02
+export CODEX_COST_BUILD_RATE_PER_MINUTE=0.15
+export CODEX_COST_RUNTIME_RATE_PER_HOUR=0.05
+export CODEX_COST_BUILD_MINUTES=10
+export CODEX_COST_RUNTIME_HOURS=4
+
+capture_command output status "${CODEX_YOLO_SH}" costs
+
+cleanup_test_26
+trap - EXIT
+
+if [[ "${status}" -eq 0 ]] && \
+   echo "${output}" | grep -q "Cost attribution estimate" && \
+   echo "${output}" | grep -q "image_storage" && \
+   echo "${output}" | grep -q "docker_image_inspect" && \
+   echo "${output}" | grep -q '\$1\.750000'; then
+  log_pass "Costs command reports a readable component breakdown"
+else
+  log_fail "Costs command text output did not include the expected breakdown"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 27: costs command JSON output
+log_test "Costs command JSON output"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+
+cleanup_test_27() {
+  rm -rf "${fake_bin}"
+  export PATH="${original_path}"
+  unset FAKE_DOCKER_IMAGE_SIZE_BYTES
+  unset CODEX_COST_STORAGE_RATE_PER_GB_MONTH
+  unset CODEX_COST_BUILD_RATE_PER_MINUTE
+  unset CODEX_COST_RUNTIME_RATE_PER_HOUR
+  unset CODEX_COST_BUILD_MINUTES
+  unset CODEX_COST_RUNTIME_HOURS
+  unset CODEX_COST_STORAGE_GB
+}
+trap cleanup_test_27 EXIT
+
+create_fake_docker "${fake_bin}"
+export PATH="${fake_bin}:${PATH}"
+export FAKE_DOCKER_IMAGE_SIZE_BYTES=1000000000
+export CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.03
+export CODEX_COST_BUILD_RATE_PER_MINUTE=0.20
+export CODEX_COST_RUNTIME_RATE_PER_HOUR=0.10
+export CODEX_COST_BUILD_MINUTES=2
+export CODEX_COST_RUNTIME_HOURS=3
+
+capture_command output status "${CODEX_YOLO_SH}" costs --json
+
+cleanup_test_27
+trap - EXIT
+
+if [[ "${status}" -eq 0 ]] && \
+   echo "${output}" | grep -q '"estimate_only":true' && \
+   echo "${output}" | grep -q '"size_gb":1.000000' && \
+   echo "${output}" | grep -q '"quantity_source":"docker_image_inspect"' && \
+   echo "${output}" | grep -q '"total":0.730000'; then
+  log_pass "Costs command emits expected JSON fields"
+else
+  log_fail "Costs command JSON output was missing expected fields"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 28: costs command rejects invalid numeric input
+log_test "Costs command rejects invalid numeric input"
+unset CODEX_COST_STORAGE_RATE_PER_GB_MONTH
+unset CODEX_COST_BUILD_RATE_PER_MINUTE
+unset CODEX_COST_RUNTIME_RATE_PER_HOUR
+unset CODEX_COST_STORAGE_GB
+unset CODEX_COST_RUNTIME_HOURS
+export CODEX_COST_BUILD_MINUTES=abc
+
+capture_command output status "${CODEX_YOLO_SH}" costs
+
+unset CODEX_COST_BUILD_MINUTES
+
+if [[ "${status}" -ne 0 ]] && echo "${output}" | grep -q "CODEX_COST_BUILD_MINUTES must be a non-negative number"; then
+  log_pass "Costs command fails fast on invalid numeric settings"
+else
+  log_fail "Costs command did not reject invalid numeric settings"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 29: costs command preserves env over config precedence
+log_test "Costs command honors env over config"
+test_home=$(mktemp -d)
+
+cleanup_test_29() {
+  rm -rf "${test_home}"
+  unset CODEX_YOLO_IMAGE
+  unset CODEX_COST_STORAGE_RATE_PER_GB_MONTH
+  unset CODEX_COST_BUILD_RATE_PER_MINUTE
+  unset CODEX_COST_RUNTIME_RATE_PER_HOUR
+  unset CODEX_COST_STORAGE_GB
+  unset CODEX_COST_BUILD_MINUTES
+  unset CODEX_COST_RUNTIME_HOURS
+}
+trap cleanup_test_29 EXIT
+
+mkdir -p "${test_home}/.codex_yolo"
+cat > "${test_home}/.codex_yolo/config" <<'TESTEOF'
+CODEX_YOLO_IMAGE=from-config:latest
+CODEX_COST_STORAGE_RATE_PER_GB_MONTH=9
+CODEX_COST_BUILD_RATE_PER_MINUTE=2
+CODEX_COST_RUNTIME_RATE_PER_HOUR=8
+CODEX_COST_STORAGE_GB=5
+CODEX_COST_BUILD_MINUTES=5
+CODEX_COST_RUNTIME_HOURS=6
+TESTEOF
+
+capture_command output status env HOME="${test_home}" \
+  CODEX_YOLO_IMAGE=env-wins:latest \
+  CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0 \
+  CODEX_COST_BUILD_RATE_PER_MINUTE=3 \
+  CODEX_COST_RUNTIME_RATE_PER_HOUR=0 \
+  CODEX_COST_STORAGE_GB=0 \
+  CODEX_COST_BUILD_MINUTES=7 \
+  CODEX_COST_RUNTIME_HOURS=0 \
+  "${CODEX_YOLO_SH}" costs --json
+
+cleanup_test_29
+trap - EXIT
+
+if [[ "${status}" -eq 0 ]] && \
+   echo "${output}" | grep -q '"image":"env-wins:latest"' && \
+   echo "${output}" | grep -q '"duration_minutes":7.000000' && \
+   echo "${output}" | grep -q '"rate_per_minute":3.000000' && \
+   echo "${output}" | grep -q '"total":21.000000'; then
+  log_pass "Costs command uses environment overrides ahead of config values"
+else
+  log_fail "Costs command did not preserve env over config precedence"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 30: costs command works without Docker and uses fallback storage size
+log_test "Costs command works without Docker using fallback storage"
+fake_bin=$(mktemp -d)
+original_path="${PATH}"
+host_bash="$(command -v bash)"
+
+cleanup_test_30() {
+  export PATH="${original_path}"
+  rm -rf "${fake_bin}"
+}
+trap cleanup_test_30 EXIT
+
+for required_tool in dirname id tr uname awk env; do
+  ln -s "$(command -v "${required_tool}")" "${fake_bin}/${required_tool}"
+done
+export PATH="${fake_bin}"
+
+capture_command output status env \
+  CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.01 \
+  CODEX_COST_BUILD_RATE_PER_MINUTE=0 \
+  CODEX_COST_RUNTIME_RATE_PER_HOUR=0 \
+  CODEX_COST_STORAGE_GB=1.50 \
+  CODEX_COST_BUILD_MINUTES=0 \
+  CODEX_COST_RUNTIME_HOURS=0 \
+  "${host_bash}" "${CODEX_YOLO_SH}" costs --json
+
+cleanup_test_30
+trap - EXIT
+
+if [[ "${status}" -eq 0 ]] && \
+   echo "${output}" | grep -q '"size_gb":1.500000' && \
+   echo "${output}" | grep -q '"quantity_source":"configured_storage_gb"' && \
+   echo "${output}" | grep -q '"total":0.015000'; then
+  log_pass "Costs command stays deterministic without Docker"
+else
+  log_fail "Costs command did not use fallback storage size without Docker"
   log_info "Status: ${status}"
   log_info "Output: ${output}"
 fi

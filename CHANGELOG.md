@@ -5,6 +5,17 @@ All notable changes to codex_yolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Cost Attribution Estimator**: New host-side `codex_yolo costs` command for estimating:
+  - `image_storage` from local Docker image size metadata when available, or a configured fallback size
+  - `image_build` from configured build duration and per-minute rate
+  - `container_runtime` from configured runtime duration and per-hour rate
+  - `total` as a scenario estimate across those components
+- **Machine-readable output**: `codex_yolo costs --json` for scripting and automation
+- **Configurable estimator inputs**: New `CODEX_COST_*` settings in `.codex_yolo.conf.example`
+
 ## [1.1.0] - 2026-01-31
 
 ### Added - Product Perspective

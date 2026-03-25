@@ -40,3 +40,16 @@
 
 # Verbose output (default: 0)
 # CODEX_VERBOSE=0
+
+# Cost estimator inputs (estimate only; no live billing data)
+# One month of image storage, one image build, and one runtime window
+# CODEX_COST_STORAGE_RATE_PER_GB_MONTH=0.00
+# CODEX_COST_BUILD_RATE_PER_MINUTE=0.00
+# CODEX_COST_RUNTIME_RATE_PER_HOUR=0.00
+
+# Optional fallback image size in decimal GB when Docker metadata is unavailable
+# CODEX_COST_STORAGE_GB=0.00
+
+# Scenario durations (defaults: 0)
+# CODEX_COST_BUILD_MINUTES=0
+# CODEX_COST_RUNTIME_HOURS=0
