@@ -94,6 +94,22 @@ Get the same estimate as JSON for scripts:
 codex_yolo costs --json
 ```
 
+The normalized JSON contract uses `schema_version: "costs.v2"` and emits each
+component with nested `quantity`, `rate`, and `cost` objects. Example excerpt:
+
+```json
+{
+  "schema_version": "costs.v2",
+  "components": {
+    "image_build": {
+      "quantity": { "value": 12.0, "unit": "minute", "source": "configured_value" },
+      "rate": { "value": 0.15, "unit": "usd_per_minute" },
+      "cost": { "value": 1.8, "unit": "usd" }
+    }
+  }
+}
+```
+
 Override the inspected image or provide a fallback size when Docker metadata is unavailable:
 ```bash
 codex_yolo costs --image codex-cli-yolo:local
@@ -103,7 +119,7 @@ codex_yolo costs --build-minutes 12 --runtime-hours 8
 
 Notes:
 - Estimates are based on your configured `CODEX_COST_*` values
-- `image_storage` uses local `docker image inspect` size metadata when available
+- `image_storage` uses local Docker image metadata when available and reports `docker_image_metadata` as the canonical source label
 - No live billing API calls are made
 
 ### Force Update/Rebuild

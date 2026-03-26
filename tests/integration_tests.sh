@@ -658,10 +658,12 @@ cleanup_test_26
 trap - EXIT
 
 if [[ "${status}" -eq 0 ]] && \
-   echo "${output}" | grep -q "Cost attribution estimate" && \
-   echo "${output}" | grep -q "image_storage" && \
-   echo "${output}" | grep -q "docker_image_inspect" && \
-   echo "${output}" | grep -q '\$1\.750000'; then
+    echo "${output}" | grep -q "Cost attribution estimate" && \
+    echo "${output}" | grep -q "Component ID" && \
+    echo "${output}" | grep -q "image_storage" && \
+    echo "${output}" | grep -q "docker_image_metadata" && \
+    echo "${output}" | grep -q "scenario_rollup" && \
+    echo "${output}" | grep -q '\$1\.750000'; then
   log_pass "Costs command reports a readable component breakdown"
 else
   log_fail "Costs command text output did not include the expected breakdown"
@@ -702,10 +704,12 @@ cleanup_test_27
 trap - EXIT
 
 if [[ "${status}" -eq 0 ]] && \
+   echo "${output}" | grep -q '"schema_version":"costs.v2"' && \
    echo "${output}" | grep -q '"estimate_only":true' && \
-   echo "${output}" | grep -q '"size_gb":1.000000' && \
-   echo "${output}" | grep -q '"quantity_source":"docker_image_inspect"' && \
-   echo "${output}" | grep -q '"total":0.730000'; then
+   echo "${output}" | grep -q '"image_storage":{"quantity":{"value":1.000000,"unit":"gb","source":"docker_image_metadata"},"rate":{"value":0.030000,"unit":"usd_per_gb_month"},"cost":{"value":0.030000,"unit":"usd"}}' && \
+   echo "${output}" | grep -q '"image_build":{"quantity":{"value":2.000000,"unit":"minute","source":"configured_value"},"rate":{"value":0.200000,"unit":"usd_per_minute"},"cost":{"value":0.400000,"unit":"usd"}}' && \
+   echo "${output}" | grep -q '"container_runtime":{"quantity":{"value":3.000000,"unit":"hour","source":"configured_value"},"rate":{"value":0.100000,"unit":"usd_per_hour"},"cost":{"value":0.300000,"unit":"usd"}}' && \
+   echo "${output}" | grep -q '"total":{"value":0.730000,"unit":"usd","source":"scenario_rollup"}'; then
   log_pass "Costs command emits expected JSON fields"
 else
   log_fail "Costs command JSON output was missing expected fields"
@@ -775,10 +779,9 @@ cleanup_test_29
 trap - EXIT
 
 if [[ "${status}" -eq 0 ]] && \
-   echo "${output}" | grep -q '"image":"env-wins:latest"' && \
-   echo "${output}" | grep -q '"duration_minutes":7.000000' && \
-   echo "${output}" | grep -q '"rate_per_minute":3.000000' && \
-   echo "${output}" | grep -q '"total":21.000000'; then
+    echo "${output}" | grep -q '"image":"env-wins:latest"' && \
+    echo "${output}" | grep -q '"image_build":{"quantity":{"value":7.000000,"unit":"minute","source":"configured_value"},"rate":{"value":3.000000,"unit":"usd_per_minute"},"cost":{"value":21.000000,"unit":"usd"}}' && \
+    echo "${output}" | grep -q '"total":{"value":21.000000,"unit":"usd","source":"scenario_rollup"}'; then
   log_pass "Costs command uses environment overrides ahead of config values"
 else
   log_fail "Costs command did not preserve env over config precedence"
@@ -816,9 +819,8 @@ cleanup_test_30
 trap - EXIT
 
 if [[ "${status}" -eq 0 ]] && \
-   echo "${output}" | grep -q '"size_gb":1.500000' && \
-   echo "${output}" | grep -q '"quantity_source":"configured_storage_gb"' && \
-   echo "${output}" | grep -q '"total":0.015000'; then
+   echo "${output}" | grep -q '"image_storage":{"quantity":{"value":1.500000,"unit":"gb","source":"configured_fallback"},"rate":{"value":0.010000,"unit":"usd_per_gb_month"},"cost":{"value":0.015000,"unit":"usd"}}' && \
+   echo "${output}" | grep -q '"total":{"value":0.015000,"unit":"usd","source":"scenario_rollup"}'; then
   log_pass "Costs command stays deterministic without Docker"
 else
   log_fail "Costs command did not use fallback storage size without Docker"

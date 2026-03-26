@@ -86,11 +86,23 @@ checks. This keeps the feature available even when Docker is missing or the
 daemon is stopped.
 
 **Estimator contract**:
-- `image_storage`: one month of image storage, derived from `docker image inspect`
-  `.Size` metadata when available, otherwise `CODEX_COST_STORAGE_GB`
-- `image_build`: `CODEX_COST_BUILD_MINUTES * CODEX_COST_BUILD_RATE_PER_MINUTE`
-- `container_runtime`: `CODEX_COST_RUNTIME_HOURS * CODEX_COST_RUNTIME_RATE_PER_HOUR`
-- `total`: the sum of those three components for a single scenario
+- `schema_version: "costs.v2"` identifies the normalized machine-readable
+  contract for `codex_yolo costs --json`
+- `components.image_storage`, `components.image_build`, and
+  `components.container_runtime` are the canonical component IDs
+- Each component emits the same nested shape:
+  - `quantity.value`, `quantity.unit`, `quantity.source`
+  - `rate.value`, `rate.unit`
+  - `cost.value`, `cost.unit`
+- `total.value`, `total.unit`, and `total.source` summarize the scenario rollup
+
+**Canonical source labels**:
+- `docker_image_metadata`: derived from `docker image inspect .Size`
+- `configured_value`: resolved from config, environment, or built-in defaults
+- `configured_fallback`: storage fell back to `CODEX_COST_STORAGE_GB`
+- `cli_override`: quantity supplied directly by a CLI flag
+- `default_value`: no Docker metadata or configured fallback was available
+- `scenario_rollup`: total row/object for the combined estimate
 
 **Validation**:
 - All `CODEX_COST_*` numeric inputs must be non-negative numbers
@@ -100,7 +112,8 @@ daemon is stopped.
 
 **Output modes**:
 - Human-readable table by default
-- `--json` for scripting and automation
+- `--json` for scripting and automation with the normalized component/source
+  taxonomy above
 
 **Important limitation**: this is an estimate only. The command does not call
 any provider billing APIs and does not attempt to model every possible cost.

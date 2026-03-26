@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Machine-readable output**: `codex_yolo costs --json` for scripting and automation
 - **Configurable estimator inputs**: New `CODEX_COST_*` settings in `.codex_yolo.conf.example`
 
+### Changed
+- **Event taxonomy normalization**: `codex_yolo costs --json` now emits
+  `schema_version: "costs.v2"` with canonical component IDs, canonical source
+  labels, and a uniform nested `quantity` / `rate` / `cost` shape for every
+  component
+- **Human-readable estimator labels**: The default table now uses the same
+  normalized source labels as the JSON contract, including `docker_image_metadata`
+  and `scenario_rollup`
+
 ## [1.1.0] - 2026-01-31
 
 ### Added - Product Perspective

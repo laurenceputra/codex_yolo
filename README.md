@@ -103,7 +103,7 @@ For more examples and use cases, see [EXAMPLES.md](EXAMPLES.md).
 
 ## Cost Estimates
 
-`codex_yolo costs` is a host-side estimator for three components:
+`codex_yolo costs` is a host-side estimator for three canonical component IDs:
 
 - `image_storage`: one month of storage for the selected Docker image
 - `image_build`: one image build duration
@@ -113,6 +113,23 @@ The command is intentionally conservative in scope: it combines user-supplied
 `CODEX_COST_*` rates and durations with local `docker image inspect` size
 metadata when available. It does **not** query cloud billing APIs or any live
 provider pricing data.
+
+The machine-readable contract is normalized under `schema_version` `costs.v2`.
+Each component now uses the same nested shape:
+
+- `quantity.value`, `quantity.unit`, and `quantity.source`
+- `rate.value` and `rate.unit`
+- `cost.value` and `cost.unit`
+- `total.value`, `total.unit`, and `total.source`
+
+Canonical source labels are:
+
+- `docker_image_metadata`
+- `configured_value`
+- `configured_fallback`
+- `cli_override`
+- `default_value`
+- `scenario_rollup`
 
 Example:
 
@@ -129,6 +146,24 @@ Use `--json` for automation:
 
 ```bash
 codex_yolo costs --json
+```
+
+Example JSON shape excerpt:
+
+```json
+{
+  "schema_version": "costs.v2",
+  "estimate_only": true,
+  "image": "codex-cli-yolo:local",
+  "currency": "usd",
+  "components": {
+    "image_storage": {
+      "quantity": { "value": 1.0, "unit": "gb", "source": "docker_image_metadata" },
+      "rate": { "value": 0.02, "unit": "usd_per_gb_month" },
+      "cost": { "value": 0.02, "unit": "usd" }
+    }
+  }
+}
 ```
 
 Useful overrides:
