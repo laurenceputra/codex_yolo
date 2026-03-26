@@ -73,6 +73,24 @@ if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then
   WRAPPER_VERSION="$(tr -d '\n ' < "${SCRIPT_DIR}/VERSION")"
 fi
 
+COSTS_SCHEMA_VERSION="costs.v2"
+COSTS_CURRENCY_UNIT="usd"
+COSTS_COMPONENT_IMAGE_STORAGE="image_storage"
+COSTS_COMPONENT_IMAGE_BUILD="image_build"
+COSTS_COMPONENT_CONTAINER_RUNTIME="container_runtime"
+COSTS_SOURCE_DOCKER_IMAGE_METADATA="docker_image_metadata"
+COSTS_SOURCE_CLI_OVERRIDE="cli_override"
+COSTS_SOURCE_CONFIGURED_VALUE="configured_value"
+COSTS_SOURCE_CONFIGURED_FALLBACK="configured_fallback"
+COSTS_SOURCE_DEFAULT_VALUE="default_value"
+COSTS_SOURCE_SCENARIO_ROLLUP="scenario_rollup"
+COSTS_QUANTITY_UNIT_STORAGE="gb"
+COSTS_QUANTITY_UNIT_BUILD="minute"
+COSTS_QUANTITY_UNIT_RUNTIME="hour"
+COSTS_RATE_UNIT_STORAGE="usd_per_gb_month"
+COSTS_RATE_UNIT_BUILD="usd_per_minute"
+COSTS_RATE_UNIT_RUNTIME="usd_per_hour"
+
 log_verbose() {
   if [[ "${VERBOSE}" == "1" ]]; then
     echo "[VERBOSE] $*" >&2
@@ -98,6 +116,9 @@ Estimate per-component costs for:
 
 This command is a host-side estimate only. It uses CODEX_COST_* values plus
 local Docker image metadata when available. It does not query live billing APIs.
+
+The JSON output uses schema_version '${COSTS_SCHEMA_VERSION}' with canonical
+component IDs, source labels, and nested quantity/rate/cost objects.
 
 Configuration:
   CODEX_COST_STORAGE_RATE_PER_GB_MONTH
@@ -156,6 +177,41 @@ json_escape() {
   escaped="${escaped//$'\r'/\\r}"
   escaped="${escaped//$'\t'/\\t}"
   printf '%s' "${escaped}"
+}
+
+emit_cost_component_json() {
+  local component_id="$1"
+  local quantity_value="$2"
+  local quantity_unit="$3"
+  local quantity_source="$4"
+  local rate_value="$5"
+  local rate_unit="$6"
+  local component_cost="$7"
+
+  printf '"%s":{"quantity":{"value":%s,"unit":"%s","source":"%s"},"rate":{"value":%s,"unit":"%s"},"cost":{"value":%s,"unit":"%s"}}' \
+    "$(json_escape "${component_id}")" \
+    "${quantity_value}" \
+    "$(json_escape "${quantity_unit}")" \
+    "$(json_escape "${quantity_source}")" \
+    "${rate_value}" \
+    "$(json_escape "${rate_unit}")" \
+    "${component_cost}" \
+    "$(json_escape "${COSTS_CURRENCY_UNIT}")"
+}
+
+emit_cost_component_row() {
+  local component_id="$1"
+  local quantity_display="$2"
+  local rate_display="$3"
+  local component_cost="$4"
+  local quantity_source="$5"
+
+  printf '%-20s %-18s %-24s %-14s %s\n' \
+    "${component_id}" \
+    "${quantity_display}" \
+    "${rate_display}" \
+    "\$${component_cost}" \
+    "${quantity_source}"
 }
 
 run_costs_command() {
@@ -232,16 +288,16 @@ run_costs_command() {
 
   local storage_gb=""
   local storage_quantity_source=""
-  local build_quantity_source="configured_or_default"
-  local runtime_quantity_source="configured_or_default"
+  local build_quantity_source="${COSTS_SOURCE_CONFIGURED_VALUE}"
+  local runtime_quantity_source="${COSTS_SOURCE_CONFIGURED_VALUE}"
   local docker_size_bytes=""
   local storage_notes=()
 
   if [[ -n "${cli_build_minutes}" ]]; then
-    build_quantity_source="cli_override"
+    build_quantity_source="${COSTS_SOURCE_CLI_OVERRIDE}"
   fi
   if [[ -n "${cli_runtime_hours}" ]]; then
-    runtime_quantity_source="cli_override"
+    runtime_quantity_source="${COSTS_SOURCE_CLI_OVERRIDE}"
   fi
 
   if command -v docker >/dev/null 2>&1; then
@@ -250,18 +306,18 @@ run_costs_command() {
 
   if [[ "${docker_size_bytes}" =~ ^[0-9]+$ ]]; then
     storage_gb="$(bytes_to_cost_gb "${docker_size_bytes}")"
-    storage_quantity_source="docker_image_inspect"
+    storage_quantity_source="${COSTS_SOURCE_DOCKER_IMAGE_METADATA}"
   elif [[ -n "${configured_storage_gb}" ]]; then
     storage_gb="$(normalize_cost_number "${configured_storage_gb}")"
     if [[ -n "${cli_storage_gb}" ]]; then
-      storage_quantity_source="cli_override"
+      storage_quantity_source="${COSTS_SOURCE_CLI_OVERRIDE}"
     else
-      storage_quantity_source="configured_storage_gb"
+      storage_quantity_source="${COSTS_SOURCE_CONFIGURED_FALLBACK}"
     fi
     storage_notes+=("Docker image metadata was unavailable for '${image_name}', so storage used the configured fallback size.")
   else
     storage_gb="0.000000"
-    storage_quantity_source="default_zero"
+    storage_quantity_source="${COSTS_SOURCE_DEFAULT_VALUE}"
     storage_notes+=("Docker image metadata was unavailable for '${image_name}', so storage defaulted to 0. Set CODEX_COST_STORAGE_GB or use --storage-gb to override it.")
   fi
 
@@ -295,17 +351,42 @@ run_costs_command() {
 
   if [[ "${json_mode}" == "1" ]]; then
     printf '{'
+    printf '"schema_version":"%s",' "$(json_escape "${COSTS_SCHEMA_VERSION}")"
     printf '"estimate_only":true,'
     printf '"image":"%s",' "$(json_escape "${image_name}")"
+    printf '"currency":"%s",' "$(json_escape "${COSTS_CURRENCY_UNIT}")"
     printf '"components":{'
-    printf '"image_storage":{"size_gb":%s,"rate_per_gb_month":%s,"estimated_cost":%s,"quantity_source":"%s"},' \
-      "${storage_gb}" "${normalized_storage_rate}" "${image_storage_cost}" "$(json_escape "${storage_quantity_source}")"
-    printf '"image_build":{"duration_minutes":%s,"rate_per_minute":%s,"estimated_cost":%s,"quantity_source":"%s"},' \
-      "${normalized_build_minutes}" "${normalized_build_rate}" "${image_build_cost}" "$(json_escape "${build_quantity_source}")"
-    printf '"container_runtime":{"duration_hours":%s,"rate_per_hour":%s,"estimated_cost":%s,"quantity_source":"%s"}' \
-      "${normalized_runtime_hours}" "${normalized_runtime_rate}" "${container_runtime_cost}" "$(json_escape "${runtime_quantity_source}")"
+    emit_cost_component_json \
+      "${COSTS_COMPONENT_IMAGE_STORAGE}" \
+      "${storage_gb}" \
+      "${COSTS_QUANTITY_UNIT_STORAGE}" \
+      "${storage_quantity_source}" \
+      "${normalized_storage_rate}" \
+      "${COSTS_RATE_UNIT_STORAGE}" \
+      "${image_storage_cost}"
+    printf ','
+    emit_cost_component_json \
+      "${COSTS_COMPONENT_IMAGE_BUILD}" \
+      "${normalized_build_minutes}" \
+      "${COSTS_QUANTITY_UNIT_BUILD}" \
+      "${build_quantity_source}" \
+      "${normalized_build_rate}" \
+      "${COSTS_RATE_UNIT_BUILD}" \
+      "${image_build_cost}"
+    printf ','
+    emit_cost_component_json \
+      "${COSTS_COMPONENT_CONTAINER_RUNTIME}" \
+      "${normalized_runtime_hours}" \
+      "${COSTS_QUANTITY_UNIT_RUNTIME}" \
+      "${runtime_quantity_source}" \
+      "${normalized_runtime_rate}" \
+      "${COSTS_RATE_UNIT_RUNTIME}" \
+      "${container_runtime_cost}"
     printf '},'
-    printf '"total":%s,' "${total_cost}"
+    printf '"total":{"value":%s,"unit":"%s","source":"%s"},' \
+      "${total_cost}" \
+      "$(json_escape "${COSTS_CURRENCY_UNIT}")" \
+      "$(json_escape "${COSTS_SOURCE_SCENARIO_ROLLUP}")"
     printf '"notes":['
     for note_index in "${!estimate_notes[@]}"; do
       if [[ "${note_index}" -gt 0 ]]; then
@@ -322,12 +403,12 @@ run_costs_command() {
   echo "Estimate only: uses configured CODEX_COST_* inputs and optional local Docker metadata."
   echo "This is not live billing data."
   echo ""
-  printf '%-18s %-18s %-22s %-14s %s\n' "Component" "Quantity" "Rate" "Estimate" "Source"
-  printf '%-18s %-18s %-22s %-14s %s\n' "------------------" "------------------" "----------------------" "--------------" "---------------------"
-  printf '%-18s %-18s %-22s %-14s %s\n' "image_storage" "${storage_gb} GB" "\$${normalized_storage_rate}/GB-month" "\$${image_storage_cost}" "${storage_quantity_source}"
-  printf '%-18s %-18s %-22s %-14s %s\n' "image_build" "${normalized_build_minutes} min" "\$${normalized_build_rate}/min" "\$${image_build_cost}" "${build_quantity_source}"
-  printf '%-18s %-18s %-22s %-14s %s\n' "container_runtime" "${normalized_runtime_hours} hr" "\$${normalized_runtime_rate}/hr" "\$${container_runtime_cost}" "${runtime_quantity_source}"
-  printf '%-18s %-18s %-22s %-14s %s\n' "total" "" "" "\$${total_cost}" "scenario_total"
+  printf '%-20s %-18s %-24s %-14s %s\n' "Component ID" "Quantity" "Rate" "Estimate" "Input source"
+  printf '%-20s %-18s %-24s %-14s %s\n' "--------------------" "------------------" "------------------------" "--------------" "---------------------"
+  emit_cost_component_row "${COSTS_COMPONENT_IMAGE_STORAGE}" "${storage_gb} GB" "\$${normalized_storage_rate}/GB-month" "${image_storage_cost}" "${storage_quantity_source}"
+  emit_cost_component_row "${COSTS_COMPONENT_IMAGE_BUILD}" "${normalized_build_minutes} min" "\$${normalized_build_rate}/min" "${image_build_cost}" "${build_quantity_source}"
+  emit_cost_component_row "${COSTS_COMPONENT_CONTAINER_RUNTIME}" "${normalized_runtime_hours} hr" "\$${normalized_runtime_rate}/hr" "${container_runtime_cost}" "${runtime_quantity_source}"
+  emit_cost_component_row "total" "" "" "${total_cost}" "${COSTS_SOURCE_SCENARIO_ROLLUP}"
 
   if [[ "${#estimate_notes[@]}" -gt 0 ]]; then
     echo ""
