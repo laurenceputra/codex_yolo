@@ -26,7 +26,7 @@ Version 1.1.0 brings major improvements to usability, troubleshooting, and devel
 - **Documentation**: Full changelog in `CHANGELOG.md`
 
 ### 🔧 Engineering Quality
-- **Test Suite**: 14 integration tests ensure reliability
+- **Test Suite**: 25 integration tests cover versioning, config precedence, mount flags, and host-side validation guardrails
 - **CI/CD Pipeline**: Automated testing on every change
 - **Better Code Organization**: Modular, maintainable codebase
 

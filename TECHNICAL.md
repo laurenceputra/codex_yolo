@@ -132,14 +132,19 @@ Location: `tests/integration_tests.sh`
 7. Completion files
 8. Configuration files
 9. Config file loading
-10. Config priority (3 locations)
+10. Config priority
+11. SSH mount dry-run wiring
+12. Wrapper metadata rebuild checks
+13. GitHub mount dry-run wiring
+14. Container path validation (`CODEX_YOLO_HOME`, `CODEX_YOLO_WORKDIR`)
+15. `--gh` prerequisite failures (missing `gh`, missing auth, missing `~/.copilot`)
 
 **Running Tests**:
 ```bash
 ./tests/integration_tests.sh
 ```
 
-Expected output: All tests pass (14/14)
+Expected output: 25 total tests. On hosts without Docker, the Docker-dependent smoke tests are skipped while the host-side validation tests still run.
 
 ### Manual Testing Checklist
 
@@ -425,7 +430,7 @@ Container enables passwordless sudo:
 - Improved code organization
 - Integration test infrastructure
 
-**Impact**: +1,800 lines of code, +186% files, 14 automated tests
+**Impact**: +1,800 lines of code, +186% files, 25 automated tests
 
 ### v1.0.2 (Previous)
 
@@ -434,5 +439,5 @@ Basic functionality with auto-update and Docker containerization.
 ---
 
 **Document Version**: 1.1.0  
-**Last Updated**: 2026-01-31  
+**Last Updated**: 2026-03-24  
 **Maintained By**: Development Team
