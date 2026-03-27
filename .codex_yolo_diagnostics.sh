@@ -19,10 +19,16 @@ fi
 # Docker check
 echo ""
 echo "🐳 Docker Status:"
+docker_available=0
+docker_daemon_running=0
+docker_buildx_available=0
+
 if command -v docker >/dev/null 2>&1; then
+  docker_available=1
   echo "  ✓ Docker installed: $(docker --version)"
 
   if docker info >/dev/null 2>&1; then
+    docker_daemon_running=1
     echo "  ✓ Docker daemon running"
     docker_version=$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo "unknown")
     echo "  Docker server version: ${docker_version}"
@@ -31,6 +37,7 @@ if command -v docker >/dev/null 2>&1; then
   fi
 
   if docker buildx version >/dev/null 2>&1; then
+    docker_buildx_available=1
     echo "  ✓ Docker buildx available: $(docker buildx version | head -1)"
   else
     echo "  ⚠ Docker buildx not available (builds may be slower)"
@@ -45,7 +52,11 @@ echo "🖼️  Image Status:"
 IMAGE="${CODEX_YOLO_IMAGE:-codex-cli-yolo:local}"
 image_version=""
 image_wrapper_version=""
-if docker image inspect "${IMAGE}" >/dev/null 2>&1; then
+if [[ ${docker_available} -eq 0 ]]; then
+  echo "  ℹ Cannot inspect image until Docker is installed"
+elif [[ ${docker_daemon_running} -eq 0 ]]; then
+  echo "  ℹ Cannot inspect image until the Docker daemon is running"
+elif docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "  ✓ Image exists: ${IMAGE}"
 
   image_version=$(docker run --rm --entrypoint cat "${IMAGE}" /opt/codex-version 2>/dev/null || echo "unknown")
@@ -159,24 +170,26 @@ echo ""
 echo "=== Summary ==="
 issues=0
 
-if ! command -v docker >/dev/null 2>&1; then
+if [[ ${docker_available} -eq 0 ]]; then
   echo "❌ Docker is not installed"
   issues=$((issues + 1))
-elif ! docker info >/dev/null 2>&1; then
+elif [[ ${docker_daemon_running} -eq 0 ]]; then
   echo "❌ Docker daemon is not running"
   issues=$((issues + 1))
 fi
 
-if ! docker buildx version >/dev/null 2>&1; then
+if [[ ${docker_available} -eq 1 && ${docker_buildx_available} -eq 0 ]]; then
   echo "⚠️  Docker buildx not available (optional but recommended)"
 fi
 
-if ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
+if [[ ${docker_available} -eq 1 && ${docker_daemon_running} -eq 1 ]] && ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
   echo "ℹ️  Image not built yet (will be built on first run)"
 fi
 
-if [[ ! -d "${HOME}/.codex" ]] || [[ ! -w "${HOME}/.codex" ]]; then
-  echo "⚠️  Config directory missing or not writable"
+if [[ ! -d "${HOME}/.codex" ]]; then
+  echo "ℹ️  Config directory will be created on first run"
+elif [[ ! -w "${HOME}/.codex" ]]; then
+  echo "❌ Config directory is not writable"
   issues=$((issues + 1))
 fi
 

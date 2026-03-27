@@ -62,11 +62,24 @@ create_fake_docker() {
   cat > "${fake_bin}/docker" <<'TESTEOF'
 #!/bin/bash
 case "${1:-}" in
+  --version)
+    printf '%s\n' 'Docker version 26.1.0, build test'
+    exit 0
+    ;;
   info)
+    exit 0
+    ;;
+  version)
+    if [[ "${2:-}" == "--format" ]]; then
+      printf '%s\n' '26.1.0'
+      exit 0
+    fi
+    printf '%s\n' 'Server: Docker Engine - Community'
     exit 0
     ;;
   buildx)
     if [[ "${2:-}" == "version" ]]; then
+      printf '%s\n' 'github.com/docker/buildx 0.14.0 test'
       exit 0
     fi
     ;;
@@ -824,6 +837,72 @@ if [[ "${status}" -eq 0 ]] && \
   log_pass "Costs command stays deterministic without Docker"
 else
   log_fail "Costs command did not use fallback storage size without Docker"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 31: diagnostics reports missing Docker without implying the image is missing
+log_test "Diagnostics reports no-Docker status accurately"
+fake_bin=$(mktemp -d)
+test_home=$(mktemp -d)
+host_bash="$(command -v bash)"
+
+cleanup_test_31() {
+  rm -rf "${fake_bin}" "${test_home}"
+}
+trap cleanup_test_31 EXIT
+
+mkdir -p "${test_home}/.codex"
+for required_tool in cat df dirname env find grep id sort tail wc; do
+  ln -s "$(command -v "${required_tool}")" "${fake_bin}/${required_tool}"
+done
+
+capture_command output status env PATH="${fake_bin}" HOME="${test_home}" "${host_bash}" "${DIAGNOSTICS_SH}"
+
+cleanup_test_31
+trap - EXIT
+
+if [[ "${status}" -ne 0 ]] && \
+   echo "${output}" | grep -q "Docker not installed" && \
+   echo "${output}" | grep -q "Cannot inspect image until Docker is installed" && \
+   ! echo "${output}" | grep -q "Image not found:" && \
+   echo "${output}" | grep -q "❌ 1 critical issue(s) found"; then
+  log_pass "Diagnostics reports Docker as the blocker when Docker is unavailable"
+else
+  log_fail "Diagnostics still implied an image problem when Docker was unavailable"
+  log_info "Status: ${status}"
+  log_info "Output: ${output}"
+fi
+
+# Test 32: diagnostics treats a first-run ~/.codex directory as informational
+log_test "Diagnostics allows a missing first-run ~/.codex directory"
+fake_bin=$(mktemp -d)
+test_home=$(mktemp -d)
+host_bash="$(command -v bash)"
+
+cleanup_test_32() {
+  rm -rf "${fake_bin}" "${test_home}"
+}
+trap cleanup_test_32 EXIT
+
+create_fake_docker "${fake_bin}"
+for required_tool in cat df dirname env grep head id sort tail; do
+  ln -s "$(command -v "${required_tool}")" "${fake_bin}/${required_tool}"
+done
+
+capture_command output status env PATH="${fake_bin}" HOME="${test_home}" "${host_bash}" "${DIAGNOSTICS_SH}"
+
+cleanup_test_32
+trap - EXIT
+
+if [[ "${status}" -eq 0 ]] && \
+   echo "${output}" | grep -q "Config directory missing: ${test_home}/.codex" && \
+   echo "${output}" | grep -q "Config directory will be created on first run" && \
+   echo "${output}" | grep -q "✅ All critical checks passed!" && \
+   ! echo "${output}" | grep -q "Config directory missing or not writable"; then
+  log_pass "Diagnostics treats a missing first-run config directory as informational"
+else
+  log_fail "Diagnostics still treated a missing first-run config directory as critical"
   log_info "Status: ${status}"
   log_info "Output: ${output}"
 fi

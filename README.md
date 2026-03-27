@@ -257,6 +257,9 @@ Common issues:
 
 - **Docker not found / daemon not running:** install Docker and start the Docker
   service, then re-run `codex_yolo` (see Requirements above for links).
+- **First run with no `~/.codex` yet:** diagnostics reports this as
+  informational only. The directory is created automatically the first time you
+  sign in or launch `codex_yolo`.
 - **Files missing inside the container:** only the current directory is mounted
   by default. Run `codex_yolo` from the repo you want to work on.
 
