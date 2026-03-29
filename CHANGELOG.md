@@ -5,6 +5,13 @@ All notable changes to codex_yolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2026-03-29
+
+### Changed
+- Replace Charm's `gum` package with `bubblewrap` in the Docker image.
+- Remove the extra Charm apt repository setup that was only needed for `gum`.
+- Bump the project version from 1.1.8 to 1.1.9.
+
 ## [1.1.8] - 2026-03-29
 
 ### Added

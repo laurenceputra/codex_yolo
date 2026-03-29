@@ -374,12 +374,16 @@ else
   log_fail "Wrapper version mismatch rebuild logic missing"
 fi
 
-# Test 19: Dockerfile includes rg, gh, and gum packages
-log_test "Dockerfile installs rg, gh, and gum"
-if grep -q 'gh' "${dockerfile}" && grep -q 'ripgrep' "${dockerfile}" && grep -q 'gum' "${dockerfile}"; then
-  log_pass "Dockerfile includes gh, ripgrep, and gum packages"
+# Test 19: Dockerfile includes rg, gh, and bubblewrap packages without Charm gum setup
+log_test "Dockerfile installs rg, gh, and bubblewrap"
+if grep -q 'gh' "${dockerfile}" && \
+   grep -q 'ripgrep' "${dockerfile}" && \
+   grep -q 'bubblewrap' "${dockerfile}" && \
+   ! grep -q 'gum' "${dockerfile}" && \
+   ! grep -q 'repo\\.charm\\.sh' "${dockerfile}"; then
+  log_pass "Dockerfile includes gh, ripgrep, and bubblewrap without Charm gum setup"
 else
-  log_fail "Dockerfile missing gh, ripgrep, and/or gum package install"
+  log_fail "Dockerfile is missing bubblewrap or still contains Charm gum setup"
 fi
 
 # Test 20: --gh mounting in dry run mode
