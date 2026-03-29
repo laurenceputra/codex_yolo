@@ -5,6 +5,14 @@ All notable changes to codex_yolo will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-03-29
+
+### Added
+- Install Charm's `gum` CLI in the Docker image so Bubblegum tooling is available in the container environment.
+
+### Changed
+- Bump the project version from 1.1.7 to 1.1.8.
+
 ## [1.1.0] - 2026-01-31
 
 ### Added - Product Perspective

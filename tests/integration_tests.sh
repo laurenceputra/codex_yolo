@@ -374,12 +374,12 @@ else
   log_fail "Wrapper version mismatch rebuild logic missing"
 fi
 
-# Test 19: Dockerfile includes rg and gh packages
-log_test "Dockerfile installs rg and gh"
-if grep -q 'gh' "${dockerfile}" && grep -q 'ripgrep' "${dockerfile}"; then
-  log_pass "Dockerfile includes gh and ripgrep packages"
+# Test 19: Dockerfile includes rg, gh, and gum packages
+log_test "Dockerfile installs rg, gh, and gum"
+if grep -q 'gh' "${dockerfile}" && grep -q 'ripgrep' "${dockerfile}" && grep -q 'gum' "${dockerfile}"; then
+  log_pass "Dockerfile includes gh, ripgrep, and gum packages"
 else
-  log_fail "Dockerfile missing gh and/or ripgrep package install"
+  log_fail "Dockerfile missing gh, ripgrep, and/or gum package install"
 fi
 
 # Test 20: --gh mounting in dry run mode
